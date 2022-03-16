@@ -43,13 +43,21 @@ def FP_power_control(g):
     return x
 
 # Load the results from MATLAB optimizer
-def GP_power_control(channels):
-    res = loadmat('Data_D2D/GP_{}.mat'.format(SETTING_STRING))
+def GP_power_control(dataType):
+    assert type in ['Train', 'Test']
+    res = loadmat('D2D/GP_{}.mat'.format(SETTING_STRING))
     pc = res['power_controls_all']
-    assert np.shape(pc) == (N_TEST, N_LINKS)
-    sinrs = compute_SINRs(pc, channels)
+    assert np.shape(pc)[1] == N_LINKS
+    g = np.load(f"g_minRate_{SETTING_STRING}.npy")
+    if type == 'Train':
+        pc = pc[:N_SAMPLES['MinRate']['Train']+N_SAMPLES['MinRate']['Valid']]
+        g = g[:N_SAMPLES['MinRate']['Train']+N_SAMPLES['MinRate']['Valid']]
+    else:
+        pc = pc[-N_SAMPLES['MinRate']['Test']:]
+        g = g[-N_SAMPLES['MinRate']['Test']:]
+    sinrs = compute_SINRs(pc, g)
     # check the SINR error (theoretically should all be the same)
-    print("<<<<<<<<<<<<<<<<<<<GP SINR ERRORS>>>>>>>>>>>>>>>>>>>")
+    print(f"<<<<<<<<<<<<<<<<<<<GP SINR ERRORS on {dataType} SET>>>>>>>>>>>>>>>>>>>")
     print((np.max(sinrs, axis=1)-np.min(sinrs, axis=1))/np.min(sinrs, axis=1))
     print("<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>")
     return pc

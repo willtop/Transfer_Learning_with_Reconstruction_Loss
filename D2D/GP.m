@@ -10,17 +10,13 @@ if SETTING == 'A'
     SHORTEST_DIRECTLINK = 5;
     LONGEST_DIRECTLINK = 15;
 elseif SETTING == 'B'
-    N_LINKS = 10;
+    N_LINKS = 15;
     FIELD_LENGTH = 200;
     SHORTEST_DIRECTLINK = 20;
     LONGEST_DIRECTLINK = 30;
-else
-    N_LINKS = 15;
-    FIELD_LENGTH = 300;
-    SHORTEST_DIRECTLINK = 10;
-    LONGEST_DIRECTLINK = 30;
 end
 SETTING_STRING = sprintf('N%d_L%d_%d-%dm', N_LINKS, FIELD_LENGTH, SHORTEST_DIRECTLINK, LONGEST_DIRECTLINK);
+
 TX_POWER_dBm = 30;
 NOISE_dBm_Hz = -169;
 BANDWIDTH = 5e6;
@@ -28,20 +24,20 @@ BANDWIDTH = 5e6;
 TX_POWER = 10^((TX_POWER_dBm-30)/10);
 NOISE_POWER = 10^((NOISE_dBm_Hz-30)/10) * BANDWIDTH;
 
-CHANNELS_FILENAME = sprintf('Data_D2D/pl_test_%s.mat', SETTING_STRING);
-OUTPUT_FILENAME = sprintf('Data_D2D/GP_%s.mat', SETTING_STRING);
+CHANNELS_FILENAME = sprintf('Data/g_minRate_%s.mat', SETTING_STRING);
+OUTPUT_FILENAME = sprintf('Data/GP_%s.mat', SETTING_STRING);
     
 % Load the channel array
 load(CHANNELS_FILENAME);
-n_layouts = size(effectiveChannelGains, 1);
-assert((size(effectiveChannelGains,2)==N_LINKS) && (size(effectiveChannelGains,3)==N_LINKS));
+n_layouts = size(g, 1);
+assert((size(g,2)==N_LINKS) && (size(g,3)==N_LINKS));
 
 % Process direct-link and cross-link channels 
 dl_all_layouts = [];
 for i = 1:n_layouts
-    dl_all_layouts = [dl_all_layouts; diag(squeeze(effectiveChannelGains(i,:,:))).'];
+    dl_all_layouts = [dl_all_layouts; diag(squeeze(g(i,:,:))).'];
 end
-cl_all_layouts = effectiveChannelGains .* reshape(1-eye(N_LINKS), 1, N_LINKS, N_LINKS);
+cl_all_layouts = g .* reshape(1-eye(N_LINKS), 1, N_LINKS, N_LINKS);
 
 power_controls_all = [];
 range_prctiles = [];

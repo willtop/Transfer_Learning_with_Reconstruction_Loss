@@ -36,14 +36,14 @@ SINR_GAP = np.power(10, SINR_GAP_dB/10)
 ANTENNA_GAIN_DB = 2.5
 
 # number of samples 
+# Note: the testing layouts generated in the "MinRate" is used to test both sum rate and min rate
 N_SAMPLES = {'SumRate':{
-    'TRAIN': int(200e3),
-    'VALID': 2000,
-    'TEST': 2000
+    'Train': int(200e3),
+    'Valid': 2000
 }, 'MinRate': {
-    'TRAIN': 1000,
-    'VALID': 500,
-    'TEST': 2000
+    'Train': 1000,
+    'Valid': 500,
+    'Test': 2000
 }}
 
 # set random seed
