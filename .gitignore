@@ -127,3 +127,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# added by myself
+D2D/Data/g_sumRate_*.npy

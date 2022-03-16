@@ -59,7 +59,7 @@ class Neural_Net(nn.Module):
         decoder_module.append(nn.ReLU())
         decoder_module.append(nn.Linear(2*N_LINKS*N_LINKS, 2*N_LINKS*N_LINKS))
         decoder_module.append(nn.ReLU())
-        decoder_module.append(nn.linear(2*N_LINKS*N_LINKS, N_LINKS*N_LINKS))
+        decoder_module.append(nn.Linear(2*N_LINKS*N_LINKS, N_LINKS*N_LINKS))
         return decoder_module
     
     def construct_optimizer_module(self):

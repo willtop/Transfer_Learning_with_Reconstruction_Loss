@@ -44,12 +44,12 @@ def FP_power_control(g):
 
 # Load the results from MATLAB optimizer
 def GP_power_control(dataType):
-    assert type in ['Train', 'Test']
-    res = loadmat('D2D/GP_{}.mat'.format(SETTING_STRING))
+    assert dataType in ['Train', 'Test']
+    res = loadmat(f'Data/GP_{SETTING_STRING}.mat')
     pc = res['power_controls_all']
     assert np.shape(pc)[1] == N_LINKS
-    g = np.load(f"g_minRate_{SETTING_STRING}.npy")
-    if type == 'Train':
+    g = np.load(f"Data/g_minRate_{SETTING_STRING}.npy")
+    if dataType == 'Train':
         pc = pc[:N_SAMPLES['MinRate']['Train']+N_SAMPLES['MinRate']['Valid']]
         g = g[:N_SAMPLES['MinRate']['Train']+N_SAMPLES['MinRate']['Valid']]
     else:
