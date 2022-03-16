@@ -13,24 +13,43 @@ from setup import *
 from neural_nets import Regular_Net, Transfer_Net, Autoencoder_Transfer_Net
 
 
-def plot_training_curves(train_losses, valid_losses, task):
-    print(f"[{task}] Plotting training curves...")
-    fig, axes = plt.subplots(1,2)
-    fig.suptitle(f"D2D {task} Loss (Unscaled) over {SETTING_STRING}")
+def plot_training_curves():
+    print("[D2D] Plotting training curves...")
+    fig, axes = plt.subplots(2,2)
+    axes = axes.flatten()
+    fig.suptitle(f"D2D Loss (Unscaled) over {SETTING_STRING}")
+    # Plot for sum rates
+    train_losses = np.load(f"Trained_Models/train_losses_Sum-Rate_{SETTING_STRING}.npy")
+    valid_losses = np.load(f"Trained_Models/valid_losses_Sum-Rate_{SETTING_STRING}.npy")
     axes[0].set_xlabel("Epoches")
-    axes[0].set_ylabel("Training Losses")
+    axes[0].set_ylabel("Training Losses (Sum Rate)")
     axes[0].plot(train_losses[:,0], 'g', label="Regular Network")
     axes[0].plot(train_losses[:,1], 'b', label="Transfer Network")
     axes[0].plot(train_losses[:,2], 'r', label="AE Transfer Network")
     axes[0].plot(train_losses[:,3], 'r--', label="AE Transfer Network Combined")
     axes[0].legend()
     axes[1].set_xlabel("Epoches")
-    axes[1].set_ylabel("Validation Losses")
+    axes[1].set_ylabel("Validation Losses (Sum Rate)")
     axes[1].plot(valid_losses[:,0], 'g', label="Regular Network")
     axes[1].plot(valid_losses[:,1], 'b', label="Transfer Network")
     axes[1].plot(valid_losses[:,2], 'r', label="AE Transfer Network")
     axes[1].plot(valid_losses[:,3], 'r--', label="AE Transfer Network Combined")
     axes[1].legend()
+    # Plot for min rates
+    train_losses = np.load(f"Trained_Models/train_losses_Min-Rate_{SETTING_STRING}.npy")
+    valid_losses = np.load(f"Trained_Models/valid_losses_Min-Rate_{SETTING_STRING}.npy")
+    axes[2].set_xlabel("Epoches")
+    axes[2].set_ylabel("Training Losses (Min Rate)")
+    axes[2].plot(train_losses[:,0], 'g', label="Regular Network")
+    axes[2].plot(train_losses[:,1], 'b', label="Transfer Network")
+    axes[2].plot(train_losses[:,2], 'r', label="AE Transfer Network")
+    axes[2].legend()
+    axes[3].set_xlabel("Epoches")
+    axes[3].set_ylabel("Validation Losses (Min Rate)")
+    axes[3].plot(valid_losses[:,0], 'g', label="Regular Network")
+    axes[3].plot(valid_losses[:,1], 'b', label="Transfer Network")
+    axes[3].plot(valid_losses[:,2], 'r', label="AE Transfer Network")
+    axes[3].legend()
     plt.show()
     print("Finished plotting.")
     return
@@ -49,12 +68,7 @@ if(__name__=="__main__"):
     parser.add_argument("--plot", default=False, help="Whether plot the training curves (executed after training)")
     args = parser.parse_args()
     if args.plot:
-        train_losses = np.load(f"Trained_Models/train_losses_Sum-Rate_{SETTING_STRING}.npy")
-        valid_losses = np.load(f"Trained_Models/valid_losses_Sum-Rate_{SETTING_STRING}.npy")
-        plot_training_curves(train_losses, valid_losses, "Sum Rate")
-        train_losses = np.load(f"Trained_Models/train_losses_Min-Rate_{SETTING_STRING}.npy")
-        valid_losses = np.load(f"Trained_Models/valid_losses_Min-Rate_{SETTING_STRING}.npy")
-        plot_training_curves(train_losses, valid_losses, "Min Rate")
+        plot_training_curves()
         exit(0)
 
     regular_net, transfer_net, ae_transfer_net = \

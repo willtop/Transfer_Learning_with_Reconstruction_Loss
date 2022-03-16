@@ -3,7 +3,7 @@
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
-from neural_net import Regular_Net, Transfer_Net, Autoencoder_Transfer_Net
+from neural_nets import Regular_Net, Transfer_Net, Autoencoder_Transfer_Net
 from utils import *
 from setup import *
 from benchmarks import *
@@ -37,13 +37,13 @@ if(__name__ =='__main__'):
             pc = transfer_net.sumRate_power_control(torch.tensor(g, dtype=torch.float32).to(DEVICE))
             power_controls["Transfer Learning"] = pc.detach().cpu().numpy()
             pc, _, _ = ae_transfer_net.sumRate_power_control(torch.tensor(g, dtype=torch.float32).to(DEVICE))
-            power_controls["Auto-Encoder Transfer Learning"] = pc.detach().cpu().numpy()
+            power_controls["Autoencoder Transfer Learning"] = pc.detach().cpu().numpy()
         else:
             pc = regular_net.minRate_power_control(torch.tensor(g, dtype=torch.float32).to(DEVICE))
             power_controls["Regular Learning"] = pc.detach().cpu().numpy()
             pc = transfer_net.minRate_power_control(torch.tensor(g, dtype=torch.float32).to(DEVICE))
             power_controls["Transfer Learning"] = pc.detach().cpu().numpy()
-            pc, _, _ = ae_transfer_net.minRate_power_control(torch.tensor(g, dtype=torch.float32).to(DEVICE))
+            pc = ae_transfer_net.minRate_power_control(torch.tensor(g, dtype=torch.float32).to(DEVICE))
             power_controls["Autoencoder Transfer Learning"] = pc.detach().cpu().numpy()
         plot_colors["Regular Learning"] = 'm'
         plot_linestyles["Regular Learning"] = '--'
@@ -52,7 +52,7 @@ if(__name__ =='__main__'):
         plot_colors["Autoencoder Transfer Learning"] = 'r'
         plot_linestyles["Autoencoder Transfer Learning"] = '-'
         # Random Power
-        power_controls["Random Power"] = np.random.uniform([n_test, N_LINKS])
+        power_controls["Random Power"] = np.random.uniform(size=[n_test, N_LINKS])
         plot_colors["Random Power"] = 'k'
         plot_linestyles["Random Power"] = ':'
 
@@ -77,12 +77,12 @@ if(__name__ =='__main__'):
         print("\n")
 
 
-    # Plot the CDF curve
-    # get the lower bound plot
-    lowerbound_plot, upperbound_plot = np.inf, -np.inf
-    for val in robust_objectives.values():
-        lowerbound_plot = min(lowerbound_plot, np.percentile(val,q=10, interpolation="lower"))
-        upperbound_plot = max(upperbound_plot, np.percentile(val,q=90, interpolation="lower"))
+        # Plot the CDF curve
+        # get the lower bound plot
+        lowerbound_plot, upperbound_plot = np.inf, -np.inf
+        for val in objectives.values():
+            lowerbound_plot = min(lowerbound_plot, np.percentile(val,q=10, interpolation="lower"))
+            upperbound_plot = max(upperbound_plot, np.percentile(val,q=90, interpolation="lower"))
 
         fig = plt.figure()
         plt.xlabel(f"{task} (Mbps)", fontsize=20)
