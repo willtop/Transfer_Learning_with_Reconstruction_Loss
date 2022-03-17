@@ -38,11 +38,11 @@ ANTENNA_GAIN_DB = 2.5
 # number of samples 
 # Note: the testing layouts generated in the "MinRate" is used to test both sum rate and min rate
 N_SAMPLES = {'SumRate':{
-    'Train': int(200e3),
-    'Valid': 2000
+    'Train': int(1e6),
+    'Valid': 5000
 }, 'MinRate': {
-    'Train': 1000,
-    'Valid': 500,
+    'Train': int(1e4),
+    'Valid': 2000,
     'Test': 2000
 }}
 
