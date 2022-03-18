@@ -79,7 +79,7 @@ if(__name__=="__main__"):
     """ 
     Sum-Rate Training
     """
-    N_EPOCHES = 200
+    N_EPOCHES = 100
     MINIBATCH_SIZE = 500
     print("[D2D SumRate] Loading data...")
     g_sumRate = np.load(f"Data/g_sumRate_{SETTING_STRING}.npy")
@@ -151,7 +151,7 @@ if(__name__=="__main__"):
     """ 
     Min-Rate Training
     """
-    N_EPOCHES = 150
+    N_EPOCHES = 100
     MINIBATCH_SIZE = 500
     print("[D2D MinRate] Loading data...")
     g_minRate = np.load(f"Data/g_minRate_{SETTING_STRING}.npy")

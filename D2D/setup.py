@@ -41,7 +41,7 @@ N_SAMPLES = {'SumRate':{
     'Train': int(1e6),
     'Valid': 5000
 }, 'MinRate': {
-    'Train': int(1e4),
+    'Train': int(4e4),
     'Valid': 2000,
     'Test': 2000
 }}

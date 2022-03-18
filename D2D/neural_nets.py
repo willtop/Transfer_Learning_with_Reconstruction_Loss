@@ -15,8 +15,8 @@ class Neural_Net(nn.Module):
         self.model_path = None
         # general attributes
         self.base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Trained_Models")
-        self.input_mean = torch.tensor(np.load(os.path.join(self.base_dir, "g_train_mean_{}.npy".format(SETTING_STRING))),dtype=torch.float32).to(DEVICE)
-        self.input_std = torch.tensor(np.load(os.path.join(self.base_dir, "g_train_std_{}.npy".format(SETTING_STRING))),dtype=torch.float32).to(DEVICE)
+        self.input_mean = torch.tensor(np.load(os.path.join(self.base_dir, "Input_Normalization_Stats", "g_train_mean_{}.npy".format(SETTING_STRING))),dtype=torch.float32).to(DEVICE)
+        self.input_std = torch.tensor(np.load(os.path.join(self.base_dir, "Input_Normalization_Stats", "g_train_std_{}.npy".format(SETTING_STRING))),dtype=torch.float32).to(DEVICE)
 
     def preprocess_input(self, g):
         assert g.ndim == 3
@@ -45,30 +45,23 @@ class Neural_Net(nn.Module):
     # Modules to compose different types of neural net
     def construct_feature_module(self):
         feature_module = nn.ModuleList()
-        feature_module.append(nn.Linear(N_LINKS * N_LINKS, 4*N_LINKS*N_LINKS))
+        feature_module.append(nn.Linear(N_LINKS*N_LINKS, 3*N_LINKS*N_LINKS))
         feature_module.append(nn.ReLU())
-        feature_module.append(nn.Linear(4*N_LINKS * N_LINKS, 4*N_LINKS*N_LINKS))
+        feature_module.append(nn.Linear(3*N_LINKS*N_LINKS, 3*N_LINKS*N_LINKS))
         feature_module.append(nn.ReLU())
-        feature_module.append(nn.Linear(4*N_LINKS * N_LINKS, 4*N_LINKS*N_LINKS))
+        feature_module.append(nn.Linear(3*N_LINKS*N_LINKS, 3*N_LINKS*N_LINKS))
         feature_module.append(nn.ReLU())
-        feature_module.append(nn.Linear(4*N_LINKS * N_LINKS, self.feature_length))
+        feature_module.append(nn.Linear(3*N_LINKS*N_LINKS, self.feature_length))
         feature_module.append(nn.ReLU())
         return feature_module
-
-    def construct_decoder_module(self):
-        decoder_module = nn.ModuleList()
-        decoder_module.append(nn.Linear(self.feature_length, 4*N_LINKS*N_LINKS))
-        decoder_module.append(nn.ReLU())
-        decoder_module.append(nn.Linear(4*N_LINKS*N_LINKS, 4*N_LINKS*N_LINKS))
-        decoder_module.append(nn.ReLU())
-        decoder_module.append(nn.Linear(4*N_LINKS*N_LINKS, N_LINKS*N_LINKS))
-        return decoder_module
     
     def construct_optimizer_module(self):
         optimizer_module = nn.ModuleList()
-        optimizer_module.append(nn.Linear(self.feature_length, 4*N_LINKS))
+        optimizer_module.append(nn.Linear(self.feature_length, N_LINKS*N_LINKS))
         optimizer_module.append(nn.ReLU())
-        optimizer_module.append(nn.Linear(4*N_LINKS, 4*N_LINKS))
+        optimizer_module.append(nn.Linear(N_LINKS*N_LINKS, N_LINKS*N_LINKS))
+        optimizer_module.append(nn.ReLU())
+        optimizer_module.append(nn.Linear(N_LINKS*N_LINKS, 4*N_LINKS))
         optimizer_module.append(nn.ReLU())
         optimizer_module.append(nn.Linear(4*N_LINKS, N_LINKS))
         # with power control output being 0~1
@@ -147,6 +140,15 @@ class Autoencoder_Transfer_Net(Neural_Net):
         self.minRate_optimizer_module = self.construct_optimizer_module()
         self.load_model()
 
+    def construct_decoder_module(self):
+        decoder_module = nn.ModuleList()
+        decoder_module.append(nn.Linear(self.feature_length, 3*N_LINKS*N_LINKS))
+        decoder_module.append(nn.ReLU())
+        decoder_module.append(nn.Linear(3*N_LINKS*N_LINKS, 3*N_LINKS*N_LINKS))
+        decoder_module.append(nn.ReLU())
+        decoder_module.append(nn.Linear(3*N_LINKS*N_LINKS, N_LINKS*N_LINKS))
+        return decoder_module
+
     def sumRate_power_control(self, g):
         x = self.preprocess_input(g)
         inputs = torch.clone(x)
@@ -184,4 +186,11 @@ class Autoencoder_Transfer_Net(Neural_Net):
                 para.requires_grad = False
         return
 
-
+if __name__ == "__main__":
+    regular_net = Regular_Net()
+    n_parameters = sum(p.numel() for p in regular_net.parameters())
+    print("Regular Net number of parameters (both sum rate and min rate net combined): ", n_parameters) 
+    n_parameters = sum(p.numel() for p in regular_net.sumRate_feature_module.parameters())
+    print("The feature module number of parameters: ", n_parameters)
+    n_parameters = sum(p.numel() for p in regular_net.sumRate_optimizer_module.parameters())
+    print("The optimizer module number of parameters: ", n_parameters)

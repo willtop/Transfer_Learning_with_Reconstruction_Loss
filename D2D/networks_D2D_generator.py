@@ -7,7 +7,7 @@ from scipy.io import savemat
 from utils import *
 from setup import *
 
-GENERATE_SUMRATE = True
+GENERATE_SUMRATE = False
 GENERATE_MINRATE = True
 
 if __name__ == '__main__':
