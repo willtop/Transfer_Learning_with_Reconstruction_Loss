@@ -47,7 +47,7 @@ if(__name__ =='__main__'):
             power_controls["Autoencoder Transfer Learning"] = pc.detach().cpu().numpy()
         plot_colors["Regular Learning"] = 'm'
         plot_linestyles["Regular Learning"] = '--'
-        plot_colors["Transfer Learning"] = 'o'
+        plot_colors["Transfer Learning"] = 'g'
         plot_linestyles["Transfer Learning"] = '-.'
         plot_colors["Autoencoder Transfer Learning"] = 'r'
         plot_linestyles["Autoencoder Transfer Learning"] = '-'
@@ -96,6 +96,16 @@ if(__name__ =='__main__'):
         plt.xlim(left=lowerbound_plot/1e6, right=upperbound_plot/1e6)
         plt.legend(prop={'size':20}, loc='lower right')
         plt.subplots_adjust(left=0.1, right=0.95, bottom=0.1, top=0.95)
-        plt.show()       
+        plt.show()   
 
+        # Visualize power control solutions for selected layouts
+        rand_idxes = np.random.randint(n_test, size=3)    
+        for id in rand_idxes:
+            fig, axs = plt.subplots(2,2)
+            fig.suptitle(f"{task} Power Allocation on Test Layout #{id}")
+            axs = axs.flatten()
+            for i, method_key in enumerate([optimal_benchmark, "Regular Learning", "Transfer Learning", "Autoencoder Transfer Learning"]):
+                axs[i].set_title(method_key)
+                axs[i].plot(power_controls[method_key][id])
+            plt.show()
     print("Evaluation Finished Successfully!")
