@@ -41,9 +41,9 @@ N_SAMPLES = {'SumRate':{
     'Train': int(1e6),
     'Valid': 5000
 }, 'MinRate': {
-    'Train': int(4e4),
-    'Valid': 2000,
-    'Test': 2000
+    'Train': int(15e3),
+    'Valid': 0,#2000,
+    'Test': 0#2000
 }}
 
 # set random seed
