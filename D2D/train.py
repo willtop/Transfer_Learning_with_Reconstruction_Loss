@@ -62,6 +62,7 @@ def shuffle_divide_batches(inputs, targets, n_batches):
     targets_batches = np.split(targets[perm], n_batches, axis=0)
     return inputs_batches, targets_batches
 
+EARLY_STOPPING = False
 
 if(__name__=="__main__"):
     parser = argparse.ArgumentParser(description="main script argument parser")
@@ -79,8 +80,8 @@ if(__name__=="__main__"):
     """ 
     Sum-Rate Training
     """
-    N_EPOCHES = 100
-    MINIBATCH_SIZE = 500
+    N_EPOCHES = 75
+    MINIBATCH_SIZE = 1000
     print("[D2D SumRate] Loading data...")
     g_sumRate = np.load(f"Data/g_sumRate_{SETTING_STRING}.npy")
     print("[D2D SumRate] Computing FP targets...")
@@ -135,16 +136,21 @@ if(__name__=="__main__"):
                 valid_loss_eps.append([regular_loss, transfer_loss, ae_transfer_loss, ae_transfer_loss_combined])
                 print("[D2D Sum-Rate][Regular] Tr:{:6.3e}; Va:{:6.3e} [Transfer] Tr: {:6.3e}; Va:{:6.3e} [AE Transfer] Tr: {:6.3e}; Va: {:6.3e}".format(
                     regular_loss_ep/(j+1), regular_loss, transfer_loss_ep/(j+1), transfer_loss, ae_transfer_loss_ep/(j+1), ae_transfer_loss))
-                # Early stopping based on validation losses
-                if (regular_loss < regular_loss_min):
+                if EARLY_STOPPING:
+                    # Early stopping based on validation losses
+                    if (regular_loss < regular_loss_min):
+                        regular_net.save_model()
+                        regular_loss_min = regular_loss
+                    if (transfer_loss < transfer_loss_min):
+                        transfer_net.save_model()
+                        transfer_loss_min = transfer_loss
+                    if (ae_transfer_loss_combined < ae_transfer_loss_combined_min):
+                        ae_transfer_net.save_model()
+                        ae_transfer_loss_combined_min = ae_transfer_loss_combined    
+                else:
                     regular_net.save_model()
-                    regular_loss_min = regular_loss
-                if (transfer_loss < transfer_loss_min):
                     transfer_net.save_model()
-                    transfer_loss_min = transfer_loss
-                if (ae_transfer_loss_combined < ae_transfer_loss_combined_min):
                     ae_transfer_net.save_model()
-                    ae_transfer_loss_combined_min = ae_transfer_loss_combined    
                 np.save(f"Trained_Models/train_losses_Sum-Rate_{SETTING_STRING}.npy", np.array(train_loss_eps))
                 np.save(f"Trained_Models/valid_losses_Sum-Rate_{SETTING_STRING}.npy", np.array(valid_loss_eps))
 
@@ -207,18 +213,23 @@ if(__name__=="__main__"):
         valid_loss_eps.append([regular_loss, transfer_loss, ae_transfer_loss])
         print("[D2D Min-Rate][Regular] Tr:{:6.3e}; Va:{:6.3e} [Transfer] Tr: {:6.3e}; Va:{:6.3e} [AE Transfer] Tr: {:6.3e}; Va: {:6.3e}".format(
             regular_loss_ep/(j+1), regular_loss, transfer_loss_ep/(j+1), transfer_loss, ae_transfer_loss_ep/(j+1), ae_transfer_loss))
-        # Early stopping based on validation losses
-        if (regular_loss < regular_loss_min):
+        if EARLY_STOPPING:
+            # Early stopping based on validation losses
+            if (regular_loss < regular_loss_min):
+                regular_net.save_model()
+                regular_loss_min = regular_loss
+            if (transfer_loss < transfer_loss_min):
+                transfer_net.save_model()
+                transfer_loss_min = transfer_loss
+            if (ae_transfer_loss < ae_transfer_loss_min):
+                ae_transfer_net.save_model()
+                ae_transfer_loss_min = ae_transfer_loss    
+        else:
             regular_net.save_model()
-            regular_loss_min = regular_loss
-        if (transfer_loss < transfer_loss_min):
             transfer_net.save_model()
-            transfer_loss_min = transfer_loss
-        if (ae_transfer_loss < ae_transfer_loss_min):
             ae_transfer_net.save_model()
-            ae_transfer_loss_min = ae_transfer_loss    
         np.save(f"Trained_Models/train_losses_Min-Rate_{SETTING_STRING}.npy", np.array(train_loss_eps))
         np.save(f"Trained_Models/valid_losses_Min-Rate_{SETTING_STRING}.npy", np.array(valid_loss_eps))
 
 
-    print("Script finished!")
+    print(f"Training finished!")
