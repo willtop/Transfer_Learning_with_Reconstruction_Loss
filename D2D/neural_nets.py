@@ -9,7 +9,7 @@ class Neural_Net(nn.Module):
     def __init__(self):
         super().__init__()
         # model architecture attribute
-        self.feature_length = int(N_LINKS * N_LINKS /2)
+        self.feature_length = N_LINKS * N_LINKS 
         # attributes to be overridden by subclasses
         self.model_type = None
         self.model_path = None
@@ -49,8 +49,6 @@ class Neural_Net(nn.Module):
         feature_module.append(nn.ReLU())
         feature_module.append(nn.Linear(3*N_LINKS*N_LINKS, 3*N_LINKS*N_LINKS))
         feature_module.append(nn.ReLU())
-        feature_module.append(nn.Linear(3*N_LINKS*N_LINKS, 3*N_LINKS*N_LINKS))
-        feature_module.append(nn.ReLU())
         feature_module.append(nn.Linear(3*N_LINKS*N_LINKS, self.feature_length))
         feature_module.append(nn.ReLU())
         return feature_module
@@ -58,8 +56,6 @@ class Neural_Net(nn.Module):
     def construct_optimizer_module(self):
         optimizer_module = nn.ModuleList()
         optimizer_module.append(nn.Linear(self.feature_length, N_LINKS*N_LINKS))
-        optimizer_module.append(nn.ReLU())
-        optimizer_module.append(nn.Linear(N_LINKS*N_LINKS, N_LINKS*N_LINKS))
         optimizer_module.append(nn.ReLU())
         optimizer_module.append(nn.Linear(N_LINKS*N_LINKS, 4*N_LINKS))
         optimizer_module.append(nn.ReLU())

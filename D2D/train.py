@@ -63,6 +63,7 @@ def shuffle_divide_batches(inputs, targets, n_batches):
     return inputs_batches, targets_batches
 
 EARLY_STOPPING = False
+LEARNING_RATE = 1e-4
 
 if(__name__=="__main__"):
     parser = argparse.ArgumentParser(description="main script argument parser")
@@ -80,7 +81,7 @@ if(__name__=="__main__"):
     """ 
     Sum-Rate Training
     """
-    N_EPOCHES = 75
+    N_EPOCHES = 50
     MINIBATCH_SIZE = 1000
     print("[D2D SumRate] Loading data...")
     g_sumRate = np.load(f"Data/g_sumRate_{SETTING_STRING}.npy")
@@ -94,7 +95,7 @@ if(__name__=="__main__"):
     print("[D2D SumRate] Data Loaded! With {} training samples ({} minibatches) and {} validation samples.".format(n_train, n_minibatches, np.shape(g_sumRate_valid)[0]))
 
     optimizer_regular, optimizer_transfer, optimizer_ae_transfer = \
-            optim.Adam(regular_net.parameters(), lr=5e-4), optim.Adam(transfer_net.parameters(), lr=5e-4), optim.Adam(ae_transfer_net.parameters(), lr=5e-4)
+            optim.Adam(regular_net.parameters(), lr=LEARNING_RATE), optim.Adam(transfer_net.parameters(), lr=LEARNING_RATE), optim.Adam(ae_transfer_net.parameters(), lr=LEARNING_RATE)
     regular_loss_min, transfer_loss_min, ae_transfer_loss_combined_min = np.inf, np.inf, np.inf
     train_loss_eps, valid_loss_eps = [], []
     for i in trange(1, N_EPOCHES+1):
@@ -157,7 +158,7 @@ if(__name__=="__main__"):
     """ 
     Min-Rate Training
     """
-    N_EPOCHES = 100
+    N_EPOCHES = 75
     MINIBATCH_SIZE = 500
     print("[D2D MinRate] Loading data...")
     g_minRate = np.load(f"Data/g_minRate_{SETTING_STRING}.npy")
@@ -173,9 +174,9 @@ if(__name__=="__main__"):
     transfer_net.freeze_parameters()
     ae_transfer_net.freeze_parameters()
     optimizer_regular, optimizer_transfer, optimizer_ae_transfer = \
-            optim.Adam(filter(lambda para: para.requires_grad, regular_net.parameters()), lr=5e-4), \
-            optim.Adam(filter(lambda para: para.requires_grad, transfer_net.parameters()), lr=5e-4), \
-            optim.Adam(filter(lambda para: para.requires_grad, ae_transfer_net.parameters()), lr=5e-4)
+            optim.Adam(filter(lambda para: para.requires_grad, regular_net.parameters()), lr=LEARNING_RATE), \
+            optim.Adam(filter(lambda para: para.requires_grad, transfer_net.parameters()), lr=LEARNING_RATE), \
+            optim.Adam(filter(lambda para: para.requires_grad, ae_transfer_net.parameters()), lr=LEARNING_RATE)
     regular_loss_min, transfer_loss_min, ae_transfer_loss_min = np.inf, np.inf, np.inf
     train_loss_eps, valid_loss_eps = [], []
     for i in trange(1, N_EPOCHES+1):
