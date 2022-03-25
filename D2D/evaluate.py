@@ -12,7 +12,7 @@ n_test = N_SAMPLES['Test']
 
 if(__name__ =='__main__'):
     g = np.load("Data/g_test_{}.npy".format(SETTING_STRING))
-    assert np.shape(g) == (n_test, N_LINKS)
+    assert np.shape(g) == (n_test, N_LINKS, N_LINKS)
     print(f"[D2D] Evaluate {SETTING_STRING} over {n_test} layouts.")
 
     for task in ['Sum Rate', 'Min Rate']:
@@ -32,18 +32,18 @@ if(__name__ =='__main__'):
         # Deep Learning methods
         regular_net, transfer_net, ae_transfer_net = Regular_Net().to(DEVICE), Transfer_Net().to(DEVICE), Autoencoder_Transfer_Net().to(DEVICE)
         if task == "Sum Rate":
-            pc = regular_net.sumRate_power_control(torch.tensor(g, dtype=torch.float32).to(DEVICE))
+            pc, _ = regular_net.sumRate_power_control(torch.tensor(g, dtype=torch.float32).to(DEVICE))
             power_controls["Regular Learning"] = pc.detach().cpu().numpy()
-            pc = transfer_net.sumRate_power_control(torch.tensor(g, dtype=torch.float32).to(DEVICE))
+            pc, _ = transfer_net.sumRate_power_control(torch.tensor(g, dtype=torch.float32).to(DEVICE))
             power_controls["Transfer Learning"] = pc.detach().cpu().numpy()
             pc, _, _ = ae_transfer_net.sumRate_power_control(torch.tensor(g, dtype=torch.float32).to(DEVICE))
             power_controls["Autoencoder Transfer Learning"] = pc.detach().cpu().numpy()
         else:
-            pc = regular_net.minRate_power_control(torch.tensor(g, dtype=torch.float32).to(DEVICE))
+            pc, _ = regular_net.minRate_power_control(torch.tensor(g, dtype=torch.float32).to(DEVICE))
             power_controls["Regular Learning"] = pc.detach().cpu().numpy()
-            pc = transfer_net.minRate_power_control(torch.tensor(g, dtype=torch.float32).to(DEVICE))
+            pc, _ = transfer_net.minRate_power_control(torch.tensor(g, dtype=torch.float32).to(DEVICE))
             power_controls["Transfer Learning"] = pc.detach().cpu().numpy()
-            pc = ae_transfer_net.minRate_power_control(torch.tensor(g, dtype=torch.float32).to(DEVICE))
+            pc, _ = ae_transfer_net.minRate_power_control(torch.tensor(g, dtype=torch.float32).to(DEVICE))
             power_controls["Autoencoder Transfer Learning"] = pc.detach().cpu().numpy()
         plot_colors["Regular Learning"] = 'm'
         plot_linestyles["Regular Learning"] = '--'

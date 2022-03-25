@@ -54,13 +54,12 @@ def plot_training_curves():
     print("Finished plotting.")
     return
 
-def shuffle_divide_batches(inputs, targets, n_batches):
+def shuffle_divide_batches(inputs, n_batches):
     n_layouts = np.shape(inputs)[0]
     perm = np.arange(n_layouts)
     np.random.shuffle(perm)
     inputs_batches = np.split(inputs[perm], n_batches, axis=0)
-    targets_batches = np.split(targets[perm], n_batches, axis=0)
-    return inputs_batches, targets_batches
+    return inputs_batches
 
 EARLY_STOPPING = False
 LEARNING_RATE = 1e-4
