@@ -7,12 +7,12 @@ from scipy.io import savemat
 from utils import *
 from setup import *
 
-GENERATE_SUMRATE = True
+GENERATE_SUMRATE = False
 GENERATE_MINRATE = True
-GENERATE_TEST = True
+GENERATE_TEST = False
 
 if __name__ == '__main__':
-    print(f"Generating channels for: sum rate: {GENERATE_SUMRATE}; min rate: {GENERATE_MINRATE}")
+    print(f"Generating channels for: sum rate: {GENERATE_SUMRATE}; min rate: {GENERATE_MINRATE}; test: {GENERATE_TEST}")
     if GENERATE_SUMRATE:
         print("Generate wireless channels for sum rate training, including statistics for input normalization......")
         g, _ = generate_D2D_channelGains(N_SAMPLES['SumRate']['Train']+N_SAMPLES['SumRate']['Valid'])

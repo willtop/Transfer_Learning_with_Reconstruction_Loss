@@ -78,8 +78,8 @@ if(__name__=="__main__"):
     """ 
     Sum-Rate Training
     """
-    N_EPOCHES = 50
-    MINIBATCH_SIZE = 1000
+    N_EPOCHES = 20
+    MINIBATCH_SIZE = 2000
     print("[D2D SumRate] Loading data...")
     g_sumRate = np.load(f"Data/g_sumRate_{SETTING_STRING}.npy")
     g_sumRate_train, g_sumRate_valid = g_sumRate[:N_SAMPLES['SumRate']['Train']], g_sumRate[-N_SAMPLES['SumRate']['Valid']:]
@@ -152,8 +152,8 @@ if(__name__=="__main__"):
     """ 
     Min-Rate Training
     """
-    N_EPOCHES = 75
-    MINIBATCH_SIZE = 500
+    N_EPOCHES = 200
+    MINIBATCH_SIZE = 1000
     print("[D2D MinRate] Loading data...")
     g_minRate = np.load(f"Data/g_minRate_{SETTING_STRING}.npy")
     g_minRate_train, g_minRate_valid = g_sumRate[:N_SAMPLES['MinRate']['Train']], g_sumRate[N_SAMPLES['MinRate']['Train']:N_SAMPLES['MinRate']['Train']+N_SAMPLES['MinRate']['Valid']]
