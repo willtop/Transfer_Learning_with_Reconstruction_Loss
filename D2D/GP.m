@@ -24,7 +24,7 @@ BANDWIDTH = 5e6;
 TX_POWER = 10^((TX_POWER_dBm-30)/10);
 NOISE_POWER = 10^((NOISE_dBm_Hz-30)/10) * BANDWIDTH;
 
-CHANNELS_FILENAME = sprintf('Data/g_minRate_%s.mat', SETTING_STRING);
+CHANNELS_FILENAME = sprintf('Data/g_test_%s.mat', SETTING_STRING);
 OUTPUT_FILENAME = sprintf('Data/GP_%s.mat', SETTING_STRING);
     
 % Load the channel array

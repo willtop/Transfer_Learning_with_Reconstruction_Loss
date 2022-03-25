@@ -33,7 +33,7 @@ TX_POWER = np.power(10, (_TX_POWER_dBm - 30) / 10)
 SETTING_STRING = "N{}_L{}_{}-{}m".format(N_LINKS, FIELD_LENGTH, SHORTEST_DIRECTLINK, LONGEST_DIRECTLINK)
 SINR_GAP_dB = 0
 SINR_GAP = np.power(10, SINR_GAP_dB/10)
-ANTENNA_GAIN_DB = 2.5
+ANTENNA_GAIN_DB = 6
 
 # number of samples 
 # Note: the testing layouts generated in the "MinRate" is used to test both sum rate and min rate
@@ -41,10 +41,10 @@ N_SAMPLES = {'SumRate':{
     'Train': int(1e6),
     'Valid': 5000
 }, 'MinRate': {
-    'Train': int(1e5),
-    'Valid': 2000,
-    'Test': 2000
-}}
+    'Train': int(5e4),
+    'Valid': 2000
+}, 'Test': 2000
+}
 
 # set random seed
 RANDOM_SEED = 123

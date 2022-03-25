@@ -8,11 +8,11 @@ from utils import *
 from setup import *
 from benchmarks import *
 
-n_test = N_SAMPLES['MinRate']['Test']
+n_test = N_SAMPLES['Test']
 
 if(__name__ =='__main__'):
-    g = np.load("Data/g_minRate_{}.npy".format(SETTING_STRING))
-    g = g[-n_test:]
+    g = np.load("Data/g_test_{}.npy".format(SETTING_STRING))
+    assert np.shape(g) == (n_test, N_LINKS)
     print(f"[D2D] Evaluate {SETTING_STRING} over {n_test} layouts.")
 
     for task in ['Sum Rate', 'Min Rate']:
@@ -26,7 +26,7 @@ if(__name__ =='__main__'):
             plot_linestyles["FP"] = '--'
         else:
             # Geometric Programming
-            power_controls["GP"] = GP_power_control('Test')
+            power_controls["GP"] = GP_power_control()
             plot_colors["GP"] = 'b'
             plot_linestyles["GP"] = '--'
         # Deep Learning methods

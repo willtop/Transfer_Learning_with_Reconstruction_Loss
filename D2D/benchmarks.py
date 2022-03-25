@@ -43,21 +43,14 @@ def FP_power_control(g):
     return x
 
 # Load the results from MATLAB optimizer
-def GP_power_control(dataType):
-    assert dataType in ['Train', 'Test']
+def GP_power_control():
     res = loadmat(f'Data/GP_{SETTING_STRING}.mat')
     pc = res['power_controls_all']
-    assert np.shape(pc)[1] == N_LINKS
-    g = np.load(f"Data/g_minRate_{SETTING_STRING}.npy")
-    if dataType == 'Train':
-        pc = pc[:N_SAMPLES['MinRate']['Train']+N_SAMPLES['MinRate']['Valid']]
-        g = g[:N_SAMPLES['MinRate']['Train']+N_SAMPLES['MinRate']['Valid']]
-    else:
-        pc = pc[-N_SAMPLES['MinRate']['Test']:]
-        g = g[-N_SAMPLES['MinRate']['Test']:]
+    assert np.shape(pc) == (N_SAMPLES['Test'], N_LINKS)
+    g = np.load(f"Data/g_test_{SETTING_STRING}.npy")
     sinrs = compute_SINRs(pc, g)
     # check the SINR error (theoretically should all be the same)
-    print(f"<<<<<<<<<<<<<<<<<<<GP SINR ERRORS on {dataType} SET>>>>>>>>>>>>>>>>>>>")
+    print(f"<<<<<<<<<<<<<<<<<<<GP SINR ERRORS on TEST SET>>>>>>>>>>>>>>>>>>>")
     print((np.max(sinrs, axis=1)-np.min(sinrs, axis=1))/np.min(sinrs, axis=1))
     print("<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>")
     return pc

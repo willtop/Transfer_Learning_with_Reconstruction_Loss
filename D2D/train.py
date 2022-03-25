@@ -75,8 +75,6 @@ if(__name__=="__main__"):
 
     regular_net, transfer_net, ae_transfer_net = \
             Regular_Net().to(DEVICE), Transfer_Net().to(DEVICE), Autoencoder_Transfer_Net().to(DEVICE)
-    pc_loss_func = nn.BCELoss(reduction='mean')
-    reconstruct_loss_func = nn.MSELoss(reduction='mean')
 
     """ 
     Sum-Rate Training
@@ -85,10 +83,7 @@ if(__name__=="__main__"):
     MINIBATCH_SIZE = 1000
     print("[D2D SumRate] Loading data...")
     g_sumRate = np.load(f"Data/g_sumRate_{SETTING_STRING}.npy")
-    print("[D2D SumRate] Computing FP targets...")
-    fp = FP_power_control(g_sumRate)
     g_sumRate_train, g_sumRate_valid = g_sumRate[:N_SAMPLES['SumRate']['Train']], g_sumRate[-N_SAMPLES['SumRate']['Valid']:]
-    fp_train, fp_valid = fp[:N_SAMPLES['SumRate']['Train']], fp[-N_SAMPLES['SumRate']['Valid']:]
     n_train = np.shape(g_sumRate_train)[0]
     assert n_train % MINIBATCH_SIZE == 0
     n_minibatches = int(n_train / MINIBATCH_SIZE)
@@ -100,21 +95,21 @@ if(__name__=="__main__"):
     train_loss_eps, valid_loss_eps = [], []
     for i in trange(1, N_EPOCHES+1):
         regular_loss_ep, transfer_loss_ep, ae_transfer_loss_ep, ae_transfer_loss_combined_ep = 0, 0, 0, 0
-        g_batches, fp_batches = shuffle_divide_batches(g_sumRate_train, fp_train, n_minibatches)
+        g_batches = shuffle_divide_batches(g_sumRate_train, n_minibatches)
         for j in range(n_minibatches):
             optimizer_regular.zero_grad()
             optimizer_transfer.zero_grad()
             optimizer_ae_transfer.zero_grad()
             # Regular Net
-            x = regular_net.sumRate_power_control(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
-            regular_loss = pc_loss_func(x, torch.tensor(fp_batches[j], dtype=torch.float32).to(DEVICE))
+            _, sumRateAvg = regular_net.sumRate_power_control(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
+            regular_loss = -sumRateAvg
             # Transfer Net
-            x = transfer_net.sumRate_power_control(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
-            transfer_loss = pc_loss_func(x, torch.tensor(fp_batches[j], dtype=torch.float32).to(DEVICE))
+            _, sumRateAvg = transfer_net.sumRate_power_control(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
+            transfer_loss = -sumRateAvg
             # AutoEncoder Transfer Net
-            x, inputs, inputs_reconstructed = ae_transfer_net.sumRate_power_control(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
-            ae_transfer_loss = pc_loss_func(x, torch.tensor(fp_batches[j], dtype=torch.float32).to(DEVICE))
-            ae_transfer_loss_combined = ae_transfer_loss + reconstruct_loss_func(inputs, inputs_reconstructed)
+            _, sumRateAvg, reconstruct_loss = ae_transfer_net.sumRate_power_control(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
+            ae_transfer_loss = -sumRateAvg
+            ae_transfer_loss_combined = ae_transfer_loss + reconstruct_loss
             # Training and recording loss
             regular_loss.backward(); optimizer_regular.step()
             transfer_loss.backward(); optimizer_transfer.step()
@@ -126,13 +121,13 @@ if(__name__=="__main__"):
             if (j+1) % min(50,n_minibatches) == 0:
                 # Validation
                 with torch.no_grad():
-                    x = regular_net.sumRate_power_control(torch.tensor(g_sumRate_valid, dtype=torch.float32).to(DEVICE))
-                    regular_loss = pc_loss_func(x, torch.tensor(fp_valid, dtype=torch.float32).to(DEVICE)).item()
-                    x = transfer_net.sumRate_power_control(torch.tensor(g_sumRate_valid, dtype=torch.float32).to(DEVICE))
-                    transfer_loss = pc_loss_func(x, torch.tensor(fp_valid, dtype=torch.float32).to(DEVICE)).item()
-                    x, inputs, inputs_reconstructed = ae_transfer_net.sumRate_power_control(torch.tensor(g_sumRate_valid, dtype=torch.float32).to(DEVICE))
-                    ae_transfer_loss = pc_loss_func(x, torch.tensor(fp_valid, dtype=torch.float32).to(DEVICE)).item()
-                    ae_transfer_loss_combined = ae_transfer_loss + reconstruct_loss_func(inputs, inputs_reconstructed).item()
+                    _, sumRateAvg = regular_net.sumRate_power_control(torch.tensor(g_sumRate_valid, dtype=torch.float32).to(DEVICE))
+                    regular_loss = -sumRateAvg.item()
+                    _, sumRateAvg = transfer_net.sumRate_power_control(torch.tensor(g_sumRate_valid, dtype=torch.float32).to(DEVICE))
+                    transfer_loss = -sumRateAvg.item()
+                    _, sumRateAvg, reconstruct_loss = ae_transfer_net.sumRate_power_control(torch.tensor(g_sumRate_valid, dtype=torch.float32).to(DEVICE))
+                    ae_transfer_loss = -sumRateAvg.item()
+                    ae_transfer_loss_combined = ae_transfer_loss + reconstruct_loss.item()
                 train_loss_eps.append([regular_loss_ep/(j+1), transfer_loss_ep/(j+1), ae_transfer_loss_ep/(j+1), ae_transfer_loss_combined_ep/(j+1)])
                 valid_loss_eps.append([regular_loss, transfer_loss, ae_transfer_loss, ae_transfer_loss_combined])
                 print("[D2D Sum-Rate][Regular] Tr:{:6.3e}; Va:{:6.3e} [Transfer] Tr: {:6.3e}; Va:{:6.3e} [AE Transfer] Tr: {:6.3e}; Va: {:6.3e}".format(
@@ -162,9 +157,7 @@ if(__name__=="__main__"):
     MINIBATCH_SIZE = 500
     print("[D2D MinRate] Loading data...")
     g_minRate = np.load(f"Data/g_minRate_{SETTING_STRING}.npy")
-    gp = GP_power_control('Train')
     g_minRate_train, g_minRate_valid = g_sumRate[:N_SAMPLES['MinRate']['Train']], g_sumRate[N_SAMPLES['MinRate']['Train']:N_SAMPLES['MinRate']['Train']+N_SAMPLES['MinRate']['Valid']]
-    gp_train, gp_valid = gp[:N_SAMPLES['MinRate']['Train']], gp[N_SAMPLES['MinRate']['Train']:N_SAMPLES['MinRate']['Train']+N_SAMPLES['MinRate']['Valid']]
     n_train = np.shape(g_minRate_train)[0]
     assert n_train % MINIBATCH_SIZE == 0
     n_minibatches = int(n_train / MINIBATCH_SIZE)
@@ -181,20 +174,20 @@ if(__name__=="__main__"):
     train_loss_eps, valid_loss_eps = [], []
     for i in trange(1, N_EPOCHES+1):
         regular_loss_ep, transfer_loss_ep, ae_transfer_loss_ep = 0, 0, 0
-        g_batches, gp_batches = shuffle_divide_batches(g_minRate_train, gp_train, n_minibatches)
+        g_batches = shuffle_divide_batches(g_minRate_train, n_minibatches)
         for j in range(n_minibatches):
             optimizer_regular.zero_grad()
             optimizer_transfer.zero_grad()
             optimizer_ae_transfer.zero_grad()
             # Regular Net
-            x = regular_net.minRate_power_control(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
-            regular_loss = pc_loss_func(x, torch.tensor(gp_batches[j], dtype=torch.float32).to(DEVICE))
+            _, minRateAvg = regular_net.minRate_power_control(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
+            regular_loss = -minRateAvg
             # Transfer Net
-            x = transfer_net.minRate_power_control(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
-            transfer_loss = pc_loss_func(x, torch.tensor(gp_batches[j], dtype=torch.float32).to(DEVICE))
+            _, minRateAvg = transfer_net.minRate_power_control(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
+            transfer_loss = -minRateAvg
             # AutoEncoder Transfer Net
-            x = ae_transfer_net.minRate_power_control(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
-            ae_transfer_loss = pc_loss_func(x, torch.tensor(gp_batches[j], dtype=torch.float32).to(DEVICE))
+            _, minRateAvg = ae_transfer_net.minRate_power_control(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
+            ae_transfer_loss = -minRateAvg
             # Training and recording loss
             regular_loss.backward(); optimizer_regular.step()
             transfer_loss.backward(); optimizer_transfer.step()
@@ -204,12 +197,12 @@ if(__name__=="__main__"):
             ae_transfer_loss_ep += ae_transfer_loss.item()
         # Validation
         with torch.no_grad():
-            x = regular_net.minRate_power_control(torch.tensor(g_minRate_valid, dtype=torch.float32).to(DEVICE))
-            regular_loss = pc_loss_func(x, torch.tensor(gp_valid, dtype=torch.float32).to(DEVICE)).item()
-            x = transfer_net.minRate_power_control(torch.tensor(g_minRate_valid, dtype=torch.float32).to(DEVICE))
-            transfer_loss = pc_loss_func(x, torch.tensor(gp_valid, dtype=torch.float32).to(DEVICE)).item()
-            x = ae_transfer_net.minRate_power_control(torch.tensor(g_minRate_valid, dtype=torch.float32).to(DEVICE))
-            ae_transfer_loss = pc_loss_func(x, torch.tensor(gp_valid, dtype=torch.float32).to(DEVICE)).item()
+            _, minRateAvg = regular_net.minRate_power_control(torch.tensor(g_minRate_valid, dtype=torch.float32).to(DEVICE))
+            regular_loss = -minRateAvg.item()
+            _, minRateAvg = transfer_net.minRate_power_control(torch.tensor(g_minRate_valid, dtype=torch.float32).to(DEVICE))
+            transfer_loss = -minRateAvg.item()
+            _, minRateAvg = ae_transfer_net.minRate_power_control(torch.tensor(g_minRate_valid, dtype=torch.float32).to(DEVICE))
+            ae_transfer_loss = -minRateAvg.item()
         train_loss_eps.append([regular_loss_ep/(j+1), transfer_loss_ep/(j+1), ae_transfer_loss_ep/(j+1)])
         valid_loss_eps.append([regular_loss, transfer_loss, ae_transfer_loss])
         print("[D2D Min-Rate][Regular] Tr:{:6.3e}; Va:{:6.3e} [Transfer] Tr: {:6.3e}; Va:{:6.3e} [AE Transfer] Tr: {:6.3e}; Va: {:6.3e}".format(

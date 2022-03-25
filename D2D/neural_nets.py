@@ -30,6 +30,15 @@ class Neural_Net(nn.Module):
     def minRate_power_control(self):
         raise NotImplementedError
 
+    def compute_rates(self, pc, channels):
+        dl = torch.diagonal(channels, dim1=1, dim2=2)
+        cl = channels * (1.0-torch.eye(N_LINKS, dtype=torch.float).to(DEVICE))
+        sinrs_numerators = pc * dl
+        sinrs_denominators = torch.squeeze(torch.matmul(cl, torch.unsqueeze(pc,-1)), -1) + NOISE_POWER/TX_POWER
+        sinrs = sinrs_numerators / (sinrs_denominators * SINR_GAP)
+        # Un-normalized for better scaled gradients
+        return torch.log(1+sinrs)
+
     def load_model(self):
         if os.path.exists(self.model_path):
             self.load_state_dict(torch.load(self.model_path))
@@ -81,7 +90,9 @@ class Regular_Net(Neural_Net):
             x = lyr(x)
         for lyr  in self.sumRate_optimizer_module:
             x = lyr(x)
-        return x
+        rates = self.compute_rates(x, g)
+        sumRates = torch.sum(rates, dim=1)
+        return x, torch.mean(sumRates)
 
     def minRate_power_control(self, g):
         x = self.preprocess_input(g)
@@ -89,7 +100,9 @@ class Regular_Net(Neural_Net):
             x = lyr(x)
         for lyr  in self.minRate_optimizer_module:
             x = lyr(x)
-        return x
+        rates = self.compute_rates(x, g)
+        minRates, _ = torch.min(rates, dim=1)
+        return x, torch.mean(minRates)
 
 
 class Transfer_Net(Neural_Net):
@@ -108,7 +121,9 @@ class Transfer_Net(Neural_Net):
             x = lyr(x)
         for lyr  in self.sumRate_optimizer_module:
             x = lyr(x)
-        return x
+        rates = self.compute_rates(x, g)
+        sumRates = torch.sum(rates, dim=1)
+        return x, torch.mean(sumRates)
 
     # freeze parameters for transfer learning
     def freeze_parameters(self):
@@ -123,7 +138,9 @@ class Transfer_Net(Neural_Net):
             x = lyr(x)
         for lyr  in self.minRate_optimizer_module:
             x = lyr(x)
-        return x
+        rates = self.compute_rates(x, g)
+        minRates, _ = torch.min(rates, dim=1)
+        return x, torch.mean(minRates)
 
 class Autoencoder_Transfer_Net(Neural_Net):
     def __init__(self):
@@ -134,6 +151,8 @@ class Autoencoder_Transfer_Net(Neural_Net):
         self.decoder_module = self.construct_decoder_module()
         self.sumRate_optimizer_module = self.construct_optimizer_module()
         self.minRate_optimizer_module = self.construct_optimizer_module()
+        # for auto-encoder reconstruction loss
+        self.reconstruct_loss_func = nn.MSELoss(reduction='mean')
         self.load_model()
 
     def construct_decoder_module(self):
@@ -157,8 +176,10 @@ class Autoencoder_Transfer_Net(Neural_Net):
         inputs_reconstructed = x
         for lyr in self.sumRate_optimizer_module:
             features = lyr(features)
-        outputs = features
-        return outputs, inputs, inputs_reconstructed
+        pc = features
+        rates = self.compute_rates(pc, g)
+        sumRates = torch.sum(rates, dim=1)
+        return pc, torch.mean(sumRates), self.reconstruct_loss_func(inputs, inputs_reconstructed)
     
     # freeze parameters for transfer learning
     def freeze_parameters(self):
@@ -173,7 +194,9 @@ class Autoencoder_Transfer_Net(Neural_Net):
             x = lyr(x)
         for lyr in self.minRate_optimizer_module:
             x = lyr(x)
-        return x
+        rates = self.compute_rates(x, g)
+        minRates, _ = torch.min(rates, dim=1)
+        return x, torch.mean(minRates)
 
     # freeze parameters for transfer learning
     def freeze_parameters(self):
