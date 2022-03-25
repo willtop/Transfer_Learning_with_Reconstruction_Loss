@@ -184,8 +184,8 @@ class Autoencoder_Transfer_Net(Neural_Net):
 
 if __name__ == "__main__":
     regular_net = Regular_Net()
-    n_parameters = sum(p.numel() for p in regular_net.parameters())
-    print("Regular Net number of parameters (both sum rate and min rate net combined): ", n_parameters) 
+    #n_parameters = sum(p.numel() for p in regular_net.parameters())
+    #print("Regular Net number of parameters (both sum rate and min rate net combined): ", n_parameters) 
     n_parameters = sum(p.numel() for p in regular_net.sumRate_feature_module.parameters())
     print("The feature module number of parameters: ", n_parameters)
     n_parameters = sum(p.numel() for p in regular_net.sumRate_optimizer_module.parameters())
