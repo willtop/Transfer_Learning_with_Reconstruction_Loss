@@ -89,13 +89,14 @@ def generate_D2D_channelGains(n_layouts):
     pathLosses = np.power(10, (pathLosses / 10))  # convert from decibel to absolute
     ############# Shadowing and Fast Fading ##########
     # generate shadowing coefficients
-    shadowing = np.random.normal(size=np.shape(pathLosses), loc=0, scale=8.0)
-    shadowing = np.power(10.0, shadowing / 10.0)
+    #shadowing = np.random.normal(size=np.shape(pathLosses), loc=0, scale=8.0)
+    #shadowing = np.power(10.0, shadowing / 10.0)
     # generate fast fading factors with circular Gaussian
-    ff_real = np.random.normal(size=np.shape(pathLosses))
-    ff_imag = np.random.normal(size=np.shape(pathLosses))
-    ff_realizations = (np.power(ff_real, 2) + np.power(ff_imag, 2)) / 2
-    channelGains = pathLosses * shadowing * ff_realizations    
+    #ff_real = np.random.normal(size=np.shape(pathLosses))
+    #ff_imag = np.random.normal(size=np.shape(pathLosses))
+    #ff_realizations = (np.power(ff_real, 2) + np.power(ff_imag, 2)) / 2
+    #channelGains = pathLosses * shadowing * ff_realizations    
+    channelGains = pathLosses
     return channelGains, layouts # Shape: n_layouts X N X N, n_layouts X N
 
 def get_directLink_channels(channels):
