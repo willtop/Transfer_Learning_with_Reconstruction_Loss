@@ -8,8 +8,8 @@ from utils import *
 from setup import *
 
 GENERATE_SUMRATE = False
-GENERATE_MINRATE = True
-GENERATE_TEST = False
+GENERATE_MINRATE = False
+GENERATE_TEST = True
 
 if __name__ == '__main__':
     print(f"Generating channels for: sum rate: {GENERATE_SUMRATE}; min rate: {GENERATE_MINRATE}; test: {GENERATE_TEST}")

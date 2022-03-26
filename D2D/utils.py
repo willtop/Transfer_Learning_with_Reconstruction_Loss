@@ -66,7 +66,7 @@ def generate_D2D_layouts(n_layouts):
     return layouts_all, distances_all, angles_rx_all, angles_tx_all
 
 def generate_D2D_channelGains(n_layouts):
-    layouts, distances = generate_D2D_layouts(n_layouts)
+    layouts, distances, angles_rx, angles_tx = generate_D2D_layouts(n_layouts)
     assert np.shape(distances) == (n_layouts, N_LINKS, N_LINKS)
     ############ Path Losses #############
     h1, h2 = TX_HEIGHT, RX_HEIGHT
