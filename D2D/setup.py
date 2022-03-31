@@ -2,11 +2,15 @@ import os
 import random
 import numpy as np
 import torch
+# For windows specific error
+import os
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 # millimeter wave environment settings
 SETTING = 'A'
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("Using device: ", DEVICE)
 BANDWIDTH = 5e6
 CARRIER_FREQUENCY = 50e9 # 50GHz carrier frequency for millimeter wave
 WAVELENGTH = 2.998e8/CARRIER_FREQUENCY

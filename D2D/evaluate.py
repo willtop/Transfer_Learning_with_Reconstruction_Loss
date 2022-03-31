@@ -8,6 +8,7 @@ from utils import *
 from setup import *
 from benchmarks import *
 
+VISUALIZE_POWERCONTROL = False
 n_test = N_SAMPLES['Test']
 
 if(__name__ =='__main__'):
@@ -99,13 +100,14 @@ if(__name__ =='__main__'):
         plt.show()   
 
         # Visualize power control solutions for selected layouts
-        rand_idxes = np.random.randint(n_test, size=3)    
-        for id in rand_idxes:
-            fig, axs = plt.subplots(2,2)
-            fig.suptitle(f"{task} Power Allocation on Test Layout #{id}")
-            axs = axs.flatten()
-            for i, method_key in enumerate([optimal_benchmark, "Regular Learning", "Transfer Learning", "Autoencoder Transfer Learning"]):
-                axs[i].set_title(method_key)
-                axs[i].plot(power_controls[method_key][id])
-            plt.show()
+        if VISUALIZE_POWERCONTROL:
+            rand_idxes = np.random.randint(n_test, size=3)    
+            for id in rand_idxes:
+                fig, axs = plt.subplots(2,2)
+                fig.suptitle(f"{task} Power Allocation on Test Layout #{id}")
+                axs = axs.flatten()
+                for i, method_key in enumerate([optimal_benchmark, "Regular Learning", "Transfer Learning", "Autoencoder Transfer Learning"]):
+                    axs[i].set_title(method_key)
+                    axs[i].plot(power_controls[method_key][id])
+                plt.show()
     print("Evaluation Finished Successfully!")
