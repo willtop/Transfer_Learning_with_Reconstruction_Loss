@@ -2,7 +2,7 @@
 
 from random import gammavariate
 import numpy as np
-from benchmarks import FP_power_control, GP_power_control
+from utils import FP_power_control
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -54,15 +54,17 @@ def plot_training_curves():
     print("Finished plotting.")
     return
 
-def shuffle_divide_batches(inputs, n_batches):
+def shuffle_divide_batches(inputs, targets, n_batches):
     n_layouts = np.shape(inputs)[0]
     perm = np.arange(n_layouts)
     np.random.shuffle(perm)
     inputs_batches = np.split(inputs[perm], n_batches, axis=0)
-    return inputs_batches
+    targets_batches = np.split(targets[perm], n_batches)
+    return inputs_batches, targets_batches
 
 EARLY_STOPPING = False
 LEARNING_RATE = 1e-4
+pc_loss_func = nn.BCELoss(reduction='mean')
 
 if(__name__=="__main__"):
     parser = argparse.ArgumentParser(description="main script argument parser")
@@ -76,17 +78,19 @@ if(__name__=="__main__"):
             Regular_Net().to(DEVICE), Transfer_Net().to(DEVICE), Autoencoder_Transfer_Net().to(DEVICE)
 
     """ 
-    Sum-Rate Training
+    Source-Task Training
     """
     N_EPOCHES = 2
     MINIBATCH_SIZE = 2000
-    print("[D2D SumRate] Loading data...")
-    g_sumRate = np.load(f"Data/g_sumRate_{SETTING_STRING}.npy")
-    g_sumRate_train, g_sumRate_valid = g_sumRate[:N_SAMPLES['SumRate']['Train']], g_sumRate[-N_SAMPLES['SumRate']['Valid']:]
-    n_train = np.shape(g_sumRate_train)[0]
-    assert n_train % MINIBATCH_SIZE == 0
-    n_minibatches = int(n_train / MINIBATCH_SIZE)
-    print("[D2D SumRate] Data Loaded! With {} training samples ({} minibatches) and {} validation samples.".format(n_train, n_minibatches, np.shape(g_sumRate_valid)[0]))
+    print("[Source Task D2D SumRate] Loading data...")
+    importance_weights = np.load(f"Trained_Models/Importance_Weights/sourceTask_weights_{SETTING_STRING}.npy")
+    g = np.load(f"Data/g_sourceTask_{SETTING_STRING}.npy")
+    fp = FP_power_control(g, importance_weights)
+    g_train, g_valid = g[:N_SAMPLES['SourceTask']['Train']], g[-N_SAMPLES['SourceTask']['Valid']:]
+    fp_train, fp_valid = fp[:N_SAMPLES['SourceTask']['Train']], fp[-N_SAMPLES['SourceTask']['Valid']:]
+    assert N_SAMPLES['SourceTask']['Train'] % MINIBATCH_SIZE == 0
+    n_minibatches = int(N_SAMPLES['SourceTask']['Train'] / MINIBATCH_SIZE)
+    print(f"[Source Task D2D SumRate] Data Loaded! With {N_SAMPLES['SourceTask']['Train']} training samples ({n_minibatches} minibatches) and {N_SAMPLES['SourceTask']['Valid']} validation samples.")
 
     optimizer_regular, optimizer_transfer, optimizer_ae_transfer = \
             optim.Adam(regular_net.parameters(), lr=LEARNING_RATE), optim.Adam(transfer_net.parameters(), lr=LEARNING_RATE), optim.Adam(ae_transfer_net.parameters(), lr=LEARNING_RATE)
@@ -94,20 +98,20 @@ if(__name__=="__main__"):
     train_loss_eps, valid_loss_eps = [], []
     for i in trange(1, N_EPOCHES+1):
         regular_loss_ep, transfer_loss_ep, ae_transfer_loss_ep, ae_transfer_loss_combined_ep = 0, 0, 0, 0
-        g_batches = shuffle_divide_batches(g_sumRate_train, n_minibatches)
+        g_batches, fp_batches = shuffle_divide_batches(g_train, fp_train, n_minibatches)
         for j in range(n_minibatches):
             optimizer_regular.zero_grad()
             optimizer_transfer.zero_grad()
             optimizer_ae_transfer.zero_grad()
             # Regular Net
-            _, sumRateAvg = regular_net.sumRate_power_control(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
-            regular_loss = -sumRateAvg
+            pc = regular_net.sourceTask_powerControl(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
+            regular_loss = pc_loss_func(pc, torch.tensor(fp_batches[j],dtype=torch.float32).to(DEVICE))
             # Transfer Net
-            _, sumRateAvg = transfer_net.sumRate_power_control(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
-            transfer_loss = -sumRateAvg
+            pc = transfer_net.sourceTask_powerControl(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
+            transfer_loss = pc_loss_func(pc, torch.tensor(fp_batches[j],dtype=torch.float32).to(DEVICE))
             # AutoEncoder Transfer Net
-            _, sumRateAvg, reconstruct_loss = ae_transfer_net.sumRate_power_control(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
-            ae_transfer_loss = -sumRateAvg
+            pc, reconstruct_loss = ae_transfer_net.sumRate_power_control(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
+            ae_transfer_loss = pc_loss_func(pc, torch.tensor(fp_batches[j],dtype=torch.float32).to(DEVICE))
             ae_transfer_loss_combined = ae_transfer_loss + reconstruct_loss
             # Training and recording loss
             regular_loss.backward(); optimizer_regular.step()
@@ -120,12 +124,12 @@ if(__name__=="__main__"):
             if (j+1) % min(50,n_minibatches) == 0:
                 # Validation
                 with torch.no_grad():
-                    _, sumRateAvg = regular_net.sumRate_power_control(torch.tensor(g_sumRate_valid, dtype=torch.float32).to(DEVICE))
-                    regular_loss = -sumRateAvg.item()
-                    _, sumRateAvg = transfer_net.sumRate_power_control(torch.tensor(g_sumRate_valid, dtype=torch.float32).to(DEVICE))
-                    transfer_loss = -sumRateAvg.item()
-                    _, sumRateAvg, reconstruct_loss = ae_transfer_net.sumRate_power_control(torch.tensor(g_sumRate_valid, dtype=torch.float32).to(DEVICE))
-                    ae_transfer_loss = -sumRateAvg.item()
+                    pc = regular_net.sourceTask_powerControl(torch.tensor(g_valid, dtype=torch.float32).to(DEVICE))
+                    regular_loss = pc_loss_func(pc, torch.tensor(fp_valid,dtype=torch.float32).to(DEVICE)).item()
+                    pc = transfer_net.sourceTask_powerControl(torch.tensor(g_valid, dtype=torch.float32).to(DEVICE))
+                    transfer_loss = pc_loss_func(pc, torch.tensor(fp_valid,dtype=torch.float32).to(DEVICE)).item()
+                    pc, reconstruct_loss = ae_transfer_net.sourceTask_powerControl(torch.tensor(fp_valid, dtype=torch.float32).to(DEVICE))
+                    ae_transfer_loss = pc_loss_func(pc, torch.tensor(fp_valid,dtype=torch.float32).to(DEVICE)).item()
                     ae_transfer_loss_combined = ae_transfer_loss + reconstruct_loss.item()
                 train_loss_eps.append([regular_loss_ep/(j+1), transfer_loss_ep/(j+1), ae_transfer_loss_ep/(j+1), ae_transfer_loss_combined_ep/(j+1)])
                 valid_loss_eps.append([regular_loss, transfer_loss, ae_transfer_loss, ae_transfer_loss_combined])

@@ -117,5 +117,37 @@ def compute_SINRs(pc, channels):
 def compute_rates(sinrs):
     return BANDWIDTH * np.log2(1 + sinrs) 
 
-
+# Parallel computation over multiple layouts
+def FP_power_control(g, weights):
+    n_layouts = np.shape(g)[0]
+    assert np.shape(g)==(n_layouts, N_LINKS, N_LINKS)
+    assert np.shape(weights)==(N_LINKS)
+    weights = np.tile(np.expand_dims(weights, axis=0), reps=(n_layouts, 1))
+    g_diag = get_directLink_channels(g)
+    g_nondiag = get_crossLink_channels(g)
+    # For matrix multiplication and dimension matching requirement, reshape into column vectors
+    weights = np.expand_dims(weights, axis=-1)
+    g_diag = np.expand_dims(g_diag, axis=-1)
+    x = np.ones([n_layouts, N_LINKS, 1])
+    tx_powers = np.ones([n_layouts, N_LINKS, 1]) * TX_POWER  # assume same power for each transmitter
+    # In the computation below, every step's output is with shape: number of samples X N X 1
+    for i in range(150):
+        # Compute z
+        p_x_prod = x * tx_powers
+        z_denominator = np.matmul(g_nondiag, p_x_prod) + NOISE_POWER
+        z_numerator = g_diag * p_x_prod
+        z = z_numerator / z_denominator
+        # compute y
+        y_denominator = np.matmul(g, p_x_prod) + NOISE_POWER
+        y_numerator = np.sqrt(z_numerator * weights * (z + 1))
+        y = y_numerator / y_denominator
+        # compute x
+        x_denominator = np.matmul(np.transpose(g, (0,2,1)), np.power(y, 2)) * tx_powers
+        x_numerator = y * np.sqrt(weights * (z + 1) * g_diag * tx_powers)
+        x_new = np.power(x_numerator / x_denominator, 2)
+        x_new[x_new > 1] = 1  # thresholding at upperbound 1
+        x = x_new
+    assert np.shape(x)==(n_layouts, N_LINKS, 1)
+    x = np.squeeze(x, axis=-1)
+    return x
 

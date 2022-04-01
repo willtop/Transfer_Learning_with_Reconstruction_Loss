@@ -6,7 +6,6 @@ import matplotlib.pyplot as plt
 from neural_nets import Regular_Net, Transfer_Net, Autoencoder_Transfer_Net
 from utils import *
 from setup import *
-from benchmarks import *
 
 VISUALIZE_POWERCONTROL = False
 n_test = N_SAMPLES['Test']
@@ -16,24 +15,17 @@ if(__name__ =='__main__'):
     assert np.shape(g) == (n_test, N_LINKS, N_LINKS)
     print(f"[D2D] Evaluate {SETTING_STRING} over {n_test} layouts.")
 
-    for task in ['Sum Rate', 'Min Rate']:
+    for task in ['Weighted Sum Rate (Source Weights)', 'Weighted Sum Rate (Target Weights)']:
         print(f"Evaluatin {task}...")
         power_controls, plot_colors, plot_linestyles = {}, {}, {}
-        optimal_benchmark = "FP" if task=="Sum Rate" else "GP"
-        if task == "Sum Rate":
-            # Fractional Programming
-            power_controls["FP"] = FP_power_control(g)
-            plot_colors["FP"] = 'b'
-            plot_linestyles["FP"] = '--'
-        else:
-            # Geometric Programming
-            power_controls["GP"] = GP_power_control()
-            plot_colors["GP"] = 'b'
-            plot_linestyles["GP"] = '--'
+        # Fractional Programming
+        power_controls["FP"] = FP_power_control(g)
+        plot_colors["FP"] = 'b'
+        plot_linestyles["FP"] = '--'
         # Deep Learning methods
         regular_net, transfer_net, ae_transfer_net = Regular_Net().to(DEVICE), Transfer_Net().to(DEVICE), Autoencoder_Transfer_Net().to(DEVICE)
-        if task == "Sum Rate":
-            pc, _ = regular_net.sumRate_power_control(torch.tensor(g, dtype=torch.float32).to(DEVICE))
+        if "Source" in task:
+            pc = regular_net.sourceTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
             power_controls["Regular Learning"] = pc.detach().cpu().numpy()
             pc, _ = transfer_net.sumRate_power_control(torch.tensor(g, dtype=torch.float32).to(DEVICE))
             power_controls["Transfer Learning"] = pc.detach().cpu().numpy()
@@ -52,10 +44,13 @@ if(__name__ =='__main__'):
         plot_linestyles["Transfer Learning"] = '-.'
         plot_colors["Autoencoder Transfer Learning"] = 'r'
         plot_linestyles["Autoencoder Transfer Learning"] = '-'
-        # Random Power
+        # Trivial Benchmarks
         power_controls["Random Power"] = np.random.uniform(size=[n_test, N_LINKS])
         plot_colors["Random Power"] = 'k'
         plot_linestyles["Random Power"] = ':'
+        power_controls["Full Power"] = np.ones(shape=[n_test, N_LINKS], dtype=float)
+        plot_colors["Full Power"] = 'y'
+        plot_linestyles["Full Power"] = ':'
 
         print(f"Power Allocation Percentages on {task}: ")
         for method_key, power_percentages in power_controls.items():

@@ -48,11 +48,11 @@ MAIN_LOBE_HALF_WIDTH = np.pi*(10/180)
 
 # number of samples 
 # Note: the testing layouts generated in the "MinRate" is used to test both sum rate and min rate
-N_SAMPLES = {'SumRate':{
+N_SAMPLES = {'SourceTask':{
     'Train': int(1e6),
     'Valid': 5000
-}, 'MinRate': {
-    'Train': int(1e5),
+}, 'TargetTask': {
+    'Train': int(1e4),
     'Valid': 2000
 }, 'Test': 2000
 }

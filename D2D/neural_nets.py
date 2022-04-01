@@ -24,10 +24,10 @@ class Neural_Net(nn.Module):
         x = (g-self.input_mean.view(1, N_LINKS*N_LINKS))/self.input_std.view(1, N_LINKS*N_LINKS)
         return x
 
-    def sumRate_power_control(self):
+    def sourceTask_powerControl(self):
         raise NotImplementedError
 
-    def minRate_power_control(self):
+    def targetTask_powerControl(self):
         raise NotImplementedError
 
     def compute_rates(self, pc, channels):
@@ -76,31 +76,27 @@ class Regular_Net(Neural_Net):
         super().__init__()
         self.model_type = "Regular"
         self.model_path = os.path.join(self.base_dir, "{}_{}.ckpt".format(self.model_type, SETTING_STRING))
-        self.sumRate_feature_module = self.construct_feature_module()
-        self.sumRate_optimizer_module = self.construct_optimizer_module()
-        self.minRate_feature_module = self.construct_feature_module()
-        self.minRate_optimizer_module = self.construct_optimizer_module()
+        self.sourceTask_feature_module = self.construct_feature_module()
+        self.sourceTask_optimizer_module = self.construct_optimizer_module()
+        self.targetTask_feature_module = self.construct_feature_module()
+        self.targetTask_optimizer_module = self.construct_optimizer_module()
         self.load_model()
 
-    def sumRate_power_control(self, g):
+    def sourceTask_powerControl(self, g):
         x = self.preprocess_input(g)
-        for lyr in self.sumRate_feature_module:
+        for lyr in self.sourceTask_feature_module:
             x = lyr(x)
-        for lyr  in self.sumRate_optimizer_module:
+        for lyr  in self.sourceTask_optimizer_module:
             x = lyr(x)
-        rates = self.compute_rates(x, g)
-        sumRates = torch.sum(rates, dim=1)
-        return x, torch.mean(sumRates)
+        return x
 
-    def minRate_power_control(self, g):
+    def targetTask_powerControl(self, g):
         x = self.preprocess_input(g)
-        for lyr in self.minRate_feature_module:
+        for lyr in self.targetTask_feature_module:
             x = lyr(x)
-        for lyr  in self.minRate_optimizer_module:
+        for lyr  in self.targetTask_optimizer_module:
             x = lyr(x)
-        rates = self.compute_rates(x, g)
-        minRates, _ = torch.min(rates, dim=1)
-        return x, torch.mean(minRates)
+        return x
 
 
 class Transfer_Net(Neural_Net):
@@ -109,19 +105,17 @@ class Transfer_Net(Neural_Net):
         self.model_type = "Transfer"
         self.model_path = os.path.join(self.base_dir, "{}_{}.ckpt".format(self.model_type, SETTING_STRING))
         self.feature_module = self.construct_feature_module()
-        self.sumRate_optimizer_module = self.construct_optimizer_module()
-        self.minRate_optimizer_module = self.construct_optimizer_module()
+        self.sourceTask_optimizer_module = self.construct_optimizer_module()
+        self.targetTask_optimizer_module = self.construct_optimizer_module()
         self.load_model()
 
-    def sumRate_power_control(self, g):
+    def sourceTask_powerControl(self, g):
         x = self.preprocess_input(g)
         for lyr in self.feature_module:
             x = lyr(x)
-        for lyr  in self.sumRate_optimizer_module:
+        for lyr  in self.sourceTask_optimizer_module:
             x = lyr(x)
-        rates = self.compute_rates(x, g)
-        sumRates = torch.sum(rates, dim=1)
-        return x, torch.mean(sumRates)
+        return x
 
     # freeze parameters for transfer learning
     def freeze_parameters(self):
@@ -130,15 +124,13 @@ class Transfer_Net(Neural_Net):
                 para.requires_grad = False
         return
 
-    def minRate_power_control(self, g):
+    def targetTask_power_control(self, g):
         x = self.preprocess_input(g)
         for lyr in self.feature_module:
             x = lyr(x)
-        for lyr  in self.minRate_optimizer_module:
+        for lyr  in self.targetTask_optimizer_module:
             x = lyr(x)
-        rates = self.compute_rates(x, g)
-        minRates, _ = torch.min(rates, dim=1)
-        return x, torch.mean(minRates)
+        return x
 
 class Autoencoder_Transfer_Net(Neural_Net):
     def __init__(self):
@@ -147,8 +139,8 @@ class Autoencoder_Transfer_Net(Neural_Net):
         self.model_path = os.path.join(self.base_dir, "{}_{}.ckpt".format(self.model_type, SETTING_STRING))
         self.feature_module = self.construct_feature_module()
         self.decoder_module = self.construct_decoder_module()
-        self.sumRate_optimizer_module = self.construct_optimizer_module()
-        self.minRate_optimizer_module = self.construct_optimizer_module()
+        self.sourceTask_optimizer_module = self.construct_optimizer_module()
+        self.targetTask_optimizer_module = self.construct_optimizer_module()
         # for auto-encoder reconstruction loss
         self.reconstruct_loss_func = nn.MSELoss(reduction='mean')
         self.load_model()
@@ -162,7 +154,7 @@ class Autoencoder_Transfer_Net(Neural_Net):
         decoder_module.append(nn.Linear(3*N_LINKS*N_LINKS, N_LINKS*N_LINKS))
         return decoder_module
 
-    def sumRate_power_control(self, g):
+    def sourceTask_powerControl(self, g):
         x = self.preprocess_input(g)
         inputs = torch.clone(x)
         for lyr in self.feature_module:
@@ -172,12 +164,10 @@ class Autoencoder_Transfer_Net(Neural_Net):
         for lyr in self.decoder_module:
             x = lyr(x)
         inputs_reconstructed = x
-        for lyr in self.sumRate_optimizer_module:
+        for lyr in self.sourceTask_optimizer_module:
             features = lyr(features)
         pc = features
-        rates = self.compute_rates(pc, g)
-        sumRates = torch.sum(rates, dim=1)
-        return pc, torch.mean(sumRates), self.reconstruct_loss_func(inputs, inputs_reconstructed)
+        return pc, self.reconstruct_loss_func(inputs, inputs_reconstructed)
     
     # freeze parameters for transfer learning
     def freeze_parameters(self):
@@ -186,15 +176,13 @@ class Autoencoder_Transfer_Net(Neural_Net):
                 para.requires_grad = False
         return
 
-    def minRate_power_control(self, g):
+    def targetTask_power_control(self, g):
         x = self.preprocess_input(g)
         for lyr in self.feature_module:
             x = lyr(x)
-        for lyr in self.minRate_optimizer_module:
+        for lyr in self.targetTask_optimizer_module:
             x = lyr(x)
-        rates = self.compute_rates(x, g)
-        minRates, _ = torch.min(rates, dim=1)
-        return x, torch.mean(minRates)
+        return x
 
     # freeze parameters for transfer learning
     def freeze_parameters(self):
@@ -205,9 +193,7 @@ class Autoencoder_Transfer_Net(Neural_Net):
 
 if __name__ == "__main__":
     regular_net = Regular_Net()
-    #n_parameters = sum(p.numel() for p in regular_net.parameters())
-    #print("Regular Net number of parameters (both sum rate and min rate net combined): ", n_parameters) 
-    n_parameters = sum(p.numel() for p in regular_net.sumRate_feature_module.parameters())
+    n_parameters = sum(p.numel() for p in regular_net.sourceTask_feature_module.parameters())
     print("The feature module number of parameters: ", n_parameters)
-    n_parameters = sum(p.numel() for p in regular_net.sumRate_optimizer_module.parameters())
+    n_parameters = sum(p.numel() for p in regular_net.targetTask_optimizer_module.parameters())
     print("The optimizer module number of parameters: ", n_parameters)
