@@ -86,6 +86,7 @@ if(__name__=="__main__"):
     importance_weights = np.load(f"Trained_Models/Importance_Weights/sourceTask_weights_{SETTING_STRING}.npy")
     g = np.load(f"Data/g_sourceTask_{SETTING_STRING}.npy")
     fp = FP_power_control(g, importance_weights)
+    print("FP targets computation finished!")
     g_train, g_valid = g[:N_SAMPLES['SourceTask']['Train']], g[-N_SAMPLES['SourceTask']['Valid']:]
     fp_train, fp_valid = fp[:N_SAMPLES['SourceTask']['Train']], fp[-N_SAMPLES['SourceTask']['Valid']:]
     assert N_SAMPLES['SourceTask']['Train'] % MINIBATCH_SIZE == 0
@@ -133,7 +134,7 @@ if(__name__=="__main__"):
                     ae_transfer_loss_combined = ae_transfer_loss + reconstruct_loss.item()
                 train_loss_eps.append([regular_loss_ep/(j+1), transfer_loss_ep/(j+1), ae_transfer_loss_ep/(j+1), ae_transfer_loss_combined_ep/(j+1)])
                 valid_loss_eps.append([regular_loss, transfer_loss, ae_transfer_loss, ae_transfer_loss_combined])
-                print("[D2D Sum-Rate][Regular] Tr:{:6.3e}; Va:{:6.3e} [Transfer] Tr: {:6.3e}; Va:{:6.3e} [AE Transfer] Tr: {:6.3e}; Va: {:6.3e}".format(
+                print("[Source Task][Regular] Tr:{:6.3e}; Va:{:6.3e} [Transfer] Tr: {:6.3e}; Va:{:6.3e} [AE Transfer] Tr: {:6.3e}; Va: {:6.3e}".format(
                     regular_loss_ep/(j+1), regular_loss, transfer_loss_ep/(j+1), transfer_loss, ae_transfer_loss_ep/(j+1), ae_transfer_loss))
                 if EARLY_STOPPING:
                     # Early stopping based on validation losses
@@ -158,15 +159,18 @@ if(__name__=="__main__"):
     """
     N_EPOCHES = 200
     MINIBATCH_SIZE = 1000
-    print("[D2D MinRate] Loading data...")
-    g_minRate = np.load(f"Data/g_minRate_{SETTING_STRING}.npy")
-    g_minRate_train, g_minRate_valid = g_sumRate[:N_SAMPLES['MinRate']['Train']], g_sumRate[N_SAMPLES['MinRate']['Train']:N_SAMPLES['MinRate']['Train']+N_SAMPLES['MinRate']['Valid']]
-    n_train = np.shape(g_minRate_train)[0]
-    assert n_train % MINIBATCH_SIZE == 0
-    n_minibatches = int(n_train / MINIBATCH_SIZE)
-    print("[D2D MinRate] Data Loaded! With {} training samples ({} minibatches) and {} validation samples.".format(n_train, n_minibatches, np.shape(g_minRate_valid)[0]))
+    print("[Target Task D2D SumRate] Loading data...")
+    importance_weights = np.load(f"Trained_Models/Importance_Weights/targetTask_weights_{SETTING_STRING}.npy")
+    g = np.load(f"Data/g_targetTask_{SETTING_STRING}.npy")
+    fp = FP_power_control(g, importance_weights)
+    print("FP targets computation finished!")
+    g_train, g_valid = g[:N_SAMPLES['TargetTask']['Train']], g[-N_SAMPLES['TargetTask']['Valid']:]
+    fp_train, fp_valid = fp[:N_SAMPLES['TargetTask']['Train']], fp[-N_SAMPLES['TargetTask']['Valid']:]
+    assert N_SAMPLES['TargetTask']['Train'] % MINIBATCH_SIZE == 0
+    n_minibatches = int(N_SAMPLES['TargetTask']['Train'] / MINIBATCH_SIZE)
+    print(f"[Target Task D2D SumRate] Data Loaded! With {N_SAMPLES['TargetTask']['Train']} training samples ({n_minibatches} minibatches) and {N_SAMPLES['TargetTask']['Valid']} validation samples.")
 
-    print("[D2D MinRate] Freeze the neural network parameters up to the feature layers...")
+    print("[Target Task D2D SumRate] Freeze the neural network parameters up to the feature layers...")
     transfer_net.freeze_parameters()
     ae_transfer_net.freeze_parameters()
     optimizer_regular, optimizer_transfer, optimizer_ae_transfer = \
@@ -177,20 +181,20 @@ if(__name__=="__main__"):
     train_loss_eps, valid_loss_eps = [], []
     for i in trange(1, N_EPOCHES+1):
         regular_loss_ep, transfer_loss_ep, ae_transfer_loss_ep = 0, 0, 0
-        g_batches = shuffle_divide_batches(g_minRate_train, n_minibatches)
+        g_batches, fp_batches = shuffle_divide_batches(g_train, fp_train, n_minibatches)
         for j in range(n_minibatches):
             optimizer_regular.zero_grad()
             optimizer_transfer.zero_grad()
             optimizer_ae_transfer.zero_grad()
             # Regular Net
-            _, minRateAvg = regular_net.minRate_power_control(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
-            regular_loss = -minRateAvg
+            pc = regular_net.targetTask_powerControl(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
+            regular_loss = pc_loss_func(pc, torch.tensor(fp_batches[j],dtype=torch.float32).to(DEVICE))
             # Transfer Net
-            _, minRateAvg = transfer_net.minRate_power_control(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
-            transfer_loss = -minRateAvg
+            pc = transfer_net.targetTask_powerControl(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
+            transfer_loss = pc_loss_func(pc, torch.tensor(fp_batches[j],dtype=torch.float32).to(DEVICE))
             # AutoEncoder Transfer Net
-            _, minRateAvg = ae_transfer_net.minRate_power_control(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
-            ae_transfer_loss = -minRateAvg
+            pc = ae_transfer_net.targetTask_powerControl(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
+            ae_transfer_loss = pc_loss_func(pc, torch.tensor(fp_batches[j],dtype=torch.float32).to(DEVICE))
             # Training and recording loss
             regular_loss.backward(); optimizer_regular.step()
             transfer_loss.backward(); optimizer_transfer.step()
@@ -200,15 +204,15 @@ if(__name__=="__main__"):
             ae_transfer_loss_ep += ae_transfer_loss.item()
         # Validation
         with torch.no_grad():
-            _, minRateAvg = regular_net.minRate_power_control(torch.tensor(g_minRate_valid, dtype=torch.float32).to(DEVICE))
-            regular_loss = -minRateAvg.item()
-            _, minRateAvg = transfer_net.minRate_power_control(torch.tensor(g_minRate_valid, dtype=torch.float32).to(DEVICE))
-            transfer_loss = -minRateAvg.item()
-            _, minRateAvg = ae_transfer_net.minRate_power_control(torch.tensor(g_minRate_valid, dtype=torch.float32).to(DEVICE))
-            ae_transfer_loss = -minRateAvg.item()
+            pc = regular_net.targetTask_powerControl(torch.tensor(g_valid, dtype=torch.float32).to(DEVICE))
+            regular_loss = pc_loss_func(pc, torch.tensor(fp_valid,dtype=torch.float32).to(DEVICE)).item()
+            pc = transfer_net.targetTask_powerControl(torch.tensor(g_valid, dtype=torch.float32).to(DEVICE))
+            transfer_loss = pc_loss_func(pc, torch.tensor(fp_valid,dtype=torch.float32).to(DEVICE)).item()
+            pc = ae_transfer_net.targetTask_powerControl(torch.tensor(g_valid, dtype=torch.float32).to(DEVICE))
+            ae_transfer_loss = pc_loss_func(pc, torch.tensor(fp_valid,dtype=torch.float32).to(DEVICE)).item()
         train_loss_eps.append([regular_loss_ep/(j+1), transfer_loss_ep/(j+1), ae_transfer_loss_ep/(j+1)])
         valid_loss_eps.append([regular_loss, transfer_loss, ae_transfer_loss])
-        print("[D2D Min-Rate][Regular] Tr:{:6.3e}; Va:{:6.3e} [Transfer] Tr: {:6.3e}; Va:{:6.3e} [AE Transfer] Tr: {:6.3e}; Va: {:6.3e}".format(
+        print("[Target Task][Regular] Tr:{:6.3e}; Va:{:6.3e} [Transfer] Tr: {:6.3e}; Va:{:6.3e} [AE Transfer] Tr: {:6.3e}; Va: {:6.3e}".format(
             regular_loss_ep/(j+1), regular_loss, transfer_loss_ep/(j+1), transfer_loss, ae_transfer_loss_ep/(j+1), ae_transfer_loss))
         if EARLY_STOPPING:
             # Early stopping based on validation losses
