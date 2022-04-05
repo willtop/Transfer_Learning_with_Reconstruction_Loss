@@ -64,9 +64,9 @@ class Neural_Net(nn.Module):
     
     def construct_optimizer_module(self):
         optimizer_module = nn.ModuleList()
-        optimizer_module.append(nn.Linear(self.feature_length, N_LINKS*N_LINKS))
+        optimizer_module.append(nn.Linear(self.feature_length, 4*N_LINKS))
         optimizer_module.append(nn.ReLU())
-        optimizer_module.append(nn.Linear(N_LINKS*N_LINKS, N_LINKS))
+        optimizer_module.append(nn.Linear(4*N_LINKS, N_LINKS))
         # with power control output being 0~1
         optimizer_module.append(nn.Sigmoid())
         return optimizer_module
@@ -124,7 +124,7 @@ class Transfer_Net(Neural_Net):
                 para.requires_grad = False
         return
 
-    def targetTask_power_control(self, g):
+    def targetTask_powerControl(self, g):
         x = self.preprocess_input(g)
         for lyr in self.feature_module:
             x = lyr(x)
@@ -176,20 +176,13 @@ class Autoencoder_Transfer_Net(Neural_Net):
                 para.requires_grad = False
         return
 
-    def targetTask_power_control(self, g):
+    def targetTask_powerControl(self, g):
         x = self.preprocess_input(g)
         for lyr in self.feature_module:
             x = lyr(x)
         for lyr in self.targetTask_optimizer_module:
             x = lyr(x)
         return x
-
-    # freeze parameters for transfer learning
-    def freeze_parameters(self):
-        for lyr in self.feature_module:
-            for para in lyr.parameters():
-                para.requires_grad = False
-        return
 
 if __name__ == "__main__":
     regular_net = Regular_Net()

@@ -7,19 +7,23 @@ from neural_nets import Regular_Net, Transfer_Net, Autoencoder_Transfer_Net
 from utils import *
 from setup import *
 
-VISUALIZE_POWERCONTROL = False
+VISUALIZE_POWERCONTROL = True
 
 if(__name__ =='__main__'):
     g = np.load("Data/g_test_{}.npy".format(SETTING_STRING))
     assert np.shape(g) == (N_SAMPLES['Test'], N_LINKS, N_LINKS)
     print(f"[D2D] Evaluate {SETTING_STRING} over {N_SAMPLES['Test']} layouts.")
+    importance_weights_sourceTask = np.load("Trained_Models/Importance_Weights/sourceTask_weights.npy")
+    importance_weights_targetTask = np.load("Trained_Models/Importance_Weights/targetTask_weights.npy")
+    # Firstly, visualize two weights
+    visualize_importance_weights(importance_weights_sourceTask, importance_weights_targetTask)
 
     for task in ['Source Task', 'Target Task']:
         print(f"Evaluatin {task} Weighted Sum Rate...")
         if "Source" in task:
-            importance_weights = np.load(f"Trained_Models/Importance_Weights/sourceTask_weights_{SETTING_STRING}.npy")
+            importance_weights = importance_weights_sourceTask
         else:
-            importance_weights = np.load(f"Trained_Models/Importance_Weights/targetTask_weights_{SETTING_STRING}.npy")
+            importance_weights = importance_weights_targetTask
         power_controls, plot_colors, plot_linestyles = {}, {}, {}
         # Fractional Programming
         power_controls["FP"] = FP_power_control(g, importance_weights)

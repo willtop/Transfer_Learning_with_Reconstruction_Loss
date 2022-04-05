@@ -129,4 +129,4 @@ dmypy.json
 .pyre/
 
 # added by myself
-D2D/Data/g_sumRate_*.npy
+D2D/Data/*

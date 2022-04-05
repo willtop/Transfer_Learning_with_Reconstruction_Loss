@@ -18,8 +18,8 @@ _NOISE_dBm_Hz = -169
 NOISE_POWER = np.power(10, ((_NOISE_dBm_Hz-30)/10)) * BANDWIDTH
 if SETTING=='A':
     N_LINKS = 10
-    FIELD_LENGTH = 100
-    SHORTEST_DIRECTLINK = 10
+    FIELD_LENGTH = 200
+    SHORTEST_DIRECTLINK = 5
     LONGEST_DIRECTLINK = 20
 elif SETTING=='B':
     N_LINKS = 15
@@ -45,7 +45,7 @@ N_SAMPLES = {'SourceTask':{
     'Train': int(1e6),
     'Valid': 5000
 }, 'TargetTask': {
-    'Train': int(1e4),
+    'Train': int(5e3),
     'Valid': 2000
 }, 'Test': 2000
 }

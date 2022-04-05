@@ -1,6 +1,7 @@
 import numpy as np
 from setup import *
 from tqdm import trange
+import matplotlib.pyplot as plt
 
 # Generate layout one at a time
 def generate_one_D2D_layout():
@@ -48,7 +49,7 @@ def generate_D2D_layouts(n_layouts):
     return layouts_all, distances_all
 
 def generate_D2D_channelGains(n_layouts):
-    layouts, distances, angles_rx, angles_tx = generate_D2D_layouts(n_layouts)
+    layouts, distances = generate_D2D_layouts(n_layouts)
     assert np.shape(distances) == (n_layouts, N_LINKS, N_LINKS)
     ############ Path Losses #############
     h1, h2 = TX_HEIGHT, RX_HEIGHT
@@ -94,7 +95,7 @@ def compute_rates(sinrs):
 def FP_power_control(g, weights):
     n_layouts = np.shape(g)[0]
     assert np.shape(g)==(n_layouts, N_LINKS, N_LINKS)
-    assert np.shape(weights)==(N_LINKS)
+    assert np.shape(weights)==(N_LINKS,)
     weights = np.tile(np.expand_dims(weights, axis=0), reps=(n_layouts, 1))
     g_diag = get_directLink_channels(g)
     g_nondiag = get_crossLink_channels(g)
@@ -124,3 +125,10 @@ def FP_power_control(g, weights):
     x = np.squeeze(x, axis=-1)
     return x
 
+def visualize_importance_weights(weights_sourceTask, weights_targetTask):
+    plt.title("Visualize two sets of importance weights")
+    plt.plot(np.arange(1,N_LINKS+1), weights_sourceTask, 'r', label="Importance weights source task")
+    plt.plot(np.arange(1,N_LINKS+1), weights_targetTask, 'b--', linewidth=1.5, label="Importance weights target task")
+    plt.legend()
+    plt.show()
+    return

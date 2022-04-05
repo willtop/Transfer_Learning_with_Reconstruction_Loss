@@ -17,35 +17,35 @@ def plot_training_curves():
     print("[D2D] Plotting training curves...")
     fig, axes = plt.subplots(2,2)
     axes = axes.flatten()
-    fig.suptitle(f"D2D Loss (Unscaled) over {SETTING_STRING}")
-    # Plot for sum rates
-    train_losses = np.load(f"Trained_Models/train_losses_Sum-Rate_{SETTING_STRING}.npy")
-    valid_losses = np.load(f"Trained_Models/valid_losses_Sum-Rate_{SETTING_STRING}.npy")
+    fig.suptitle(f"Loss over D2D networks {SETTING_STRING}")
+    # Plot for source task
+    train_losses = np.load(f"Trained_Models/train_losses_sourceTask_{SETTING_STRING}.npy")
+    valid_losses = np.load(f"Trained_Models/valid_losses_sourceTask_{SETTING_STRING}.npy")
     axes[0].set_xlabel("Epoches")
-    axes[0].set_ylabel("Training Losses (Sum Rate)")
+    axes[0].set_ylabel("Training Losses (Source Task)")
     axes[0].plot(train_losses[:,0], 'g', label="Regular Network")
     axes[0].plot(train_losses[:,1], 'b', label="Transfer Network")
     axes[0].plot(train_losses[:,2], 'r', label="AE Transfer Network")
     axes[0].plot(train_losses[:,3], 'r--', label="AE Transfer Network Combined")
     axes[0].legend()
     axes[1].set_xlabel("Epoches")
-    axes[1].set_ylabel("Validation Losses (Sum Rate)")
+    axes[1].set_ylabel("Validation Losses (Source Task)")
     axes[1].plot(valid_losses[:,0], 'g', label="Regular Network")
     axes[1].plot(valid_losses[:,1], 'b', label="Transfer Network")
     axes[1].plot(valid_losses[:,2], 'r', label="AE Transfer Network")
     axes[1].plot(valid_losses[:,3], 'r--', label="AE Transfer Network Combined")
     axes[1].legend()
-    # Plot for min rates
-    train_losses = np.load(f"Trained_Models/train_losses_Min-Rate_{SETTING_STRING}.npy")
-    valid_losses = np.load(f"Trained_Models/valid_losses_Min-Rate_{SETTING_STRING}.npy")
+    # Plot for target task
+    train_losses = np.load(f"Trained_Models/train_losses_targetTask_{SETTING_STRING}.npy")
+    valid_losses = np.load(f"Trained_Models/valid_losses_targetTask_{SETTING_STRING}.npy")
     axes[2].set_xlabel("Epoches")
-    axes[2].set_ylabel("Training Losses (Min Rate)")
+    axes[2].set_ylabel("Training Losses (Target Task)")
     axes[2].plot(train_losses[:,0], 'g', label="Regular Network")
     axes[2].plot(train_losses[:,1], 'b', label="Transfer Network")
     axes[2].plot(train_losses[:,2], 'r', label="AE Transfer Network")
     axes[2].legend()
     axes[3].set_xlabel("Epoches")
-    axes[3].set_ylabel("Validation Losses (Min Rate)")
+    axes[3].set_ylabel("Validation Losses (Target Task)")
     axes[3].plot(valid_losses[:,0], 'g', label="Regular Network")
     axes[3].plot(valid_losses[:,1], 'b', label="Transfer Network")
     axes[3].plot(valid_losses[:,2], 'r', label="AE Transfer Network")
@@ -80,10 +80,10 @@ if(__name__=="__main__"):
     """ 
     Source-Task Training
     """
-    N_EPOCHES = 2
+    N_EPOCHES = 15
     MINIBATCH_SIZE = 2000
     print("[Source Task D2D SumRate] Loading data...")
-    importance_weights = np.load(f"Trained_Models/Importance_Weights/sourceTask_weights_{SETTING_STRING}.npy")
+    importance_weights = np.load("Trained_Models/Importance_Weights/sourceTask_weights.npy")
     g = np.load(f"Data/g_sourceTask_{SETTING_STRING}.npy")
     fp = FP_power_control(g, importance_weights)
     print("FP targets computation finished!")
@@ -111,7 +111,7 @@ if(__name__=="__main__"):
             pc = transfer_net.sourceTask_powerControl(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
             transfer_loss = pc_loss_func(pc, torch.tensor(fp_batches[j],dtype=torch.float32).to(DEVICE))
             # AutoEncoder Transfer Net
-            pc, reconstruct_loss = ae_transfer_net.sumRate_power_control(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
+            pc, reconstruct_loss = ae_transfer_net.sourceTask_powerControl(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
             ae_transfer_loss = pc_loss_func(pc, torch.tensor(fp_batches[j],dtype=torch.float32).to(DEVICE))
             ae_transfer_loss_combined = ae_transfer_loss + reconstruct_loss
             # Training and recording loss
@@ -129,7 +129,7 @@ if(__name__=="__main__"):
                     regular_loss = pc_loss_func(pc, torch.tensor(fp_valid,dtype=torch.float32).to(DEVICE)).item()
                     pc = transfer_net.sourceTask_powerControl(torch.tensor(g_valid, dtype=torch.float32).to(DEVICE))
                     transfer_loss = pc_loss_func(pc, torch.tensor(fp_valid,dtype=torch.float32).to(DEVICE)).item()
-                    pc, reconstruct_loss = ae_transfer_net.sourceTask_powerControl(torch.tensor(fp_valid, dtype=torch.float32).to(DEVICE))
+                    pc, reconstruct_loss = ae_transfer_net.sourceTask_powerControl(torch.tensor(g_valid, dtype=torch.float32).to(DEVICE))
                     ae_transfer_loss = pc_loss_func(pc, torch.tensor(fp_valid,dtype=torch.float32).to(DEVICE)).item()
                     ae_transfer_loss_combined = ae_transfer_loss + reconstruct_loss.item()
                 train_loss_eps.append([regular_loss_ep/(j+1), transfer_loss_ep/(j+1), ae_transfer_loss_ep/(j+1), ae_transfer_loss_combined_ep/(j+1)])
@@ -151,16 +151,16 @@ if(__name__=="__main__"):
                     regular_net.save_model()
                     transfer_net.save_model()
                     ae_transfer_net.save_model()
-                np.save(f"Trained_Models/train_losses_Sum-Rate_{SETTING_STRING}.npy", np.array(train_loss_eps))
-                np.save(f"Trained_Models/valid_losses_Sum-Rate_{SETTING_STRING}.npy", np.array(valid_loss_eps))
+                np.save(f"Trained_Models/train_losses_SourceTask_{SETTING_STRING}.npy", np.array(train_loss_eps))
+                np.save(f"Trained_Models/valid_losses_SourceTask_{SETTING_STRING}.npy", np.array(valid_loss_eps))
 
     """ 
     Min-Rate Training
     """
-    N_EPOCHES = 200
-    MINIBATCH_SIZE = 1000
+    N_EPOCHES = 100
+    MINIBATCH_SIZE = 500
     print("[Target Task D2D SumRate] Loading data...")
-    importance_weights = np.load(f"Trained_Models/Importance_Weights/targetTask_weights_{SETTING_STRING}.npy")
+    importance_weights = np.load("Trained_Models/Importance_Weights/targetTask_weights.npy")
     g = np.load(f"Data/g_targetTask_{SETTING_STRING}.npy")
     fp = FP_power_control(g, importance_weights)
     print("FP targets computation finished!")
@@ -229,8 +229,8 @@ if(__name__=="__main__"):
             regular_net.save_model()
             transfer_net.save_model()
             ae_transfer_net.save_model()
-        np.save(f"Trained_Models/train_losses_Min-Rate_{SETTING_STRING}.npy", np.array(train_loss_eps))
-        np.save(f"Trained_Models/valid_losses_Min-Rate_{SETTING_STRING}.npy", np.array(valid_loss_eps))
+        np.save(f"Trained_Models/train_losses_targetTask_{SETTING_STRING}.npy", np.array(train_loss_eps))
+        np.save(f"Trained_Models/valid_losses_targetTask_{SETTING_STRING}.npy", np.array(valid_loss_eps))
 
 
     print(f"Training finished!")
