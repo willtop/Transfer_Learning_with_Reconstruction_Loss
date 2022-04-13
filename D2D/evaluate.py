@@ -13,37 +13,36 @@ if(__name__ =='__main__'):
     g = np.load("Data/g_test_{}.npy".format(SETTING_STRING))
     assert np.shape(g) == (N_SAMPLES['Test'], N_LINKS, N_LINKS)
     print(f"[D2D] Evaluate {SETTING_STRING} over {N_SAMPLES['Test']} layouts.")
-    importance_weights_sourceTask = np.load("Trained_Models/Importance_Weights/sourceTask_weights.npy")
-    importance_weights_targetTask = np.load("Trained_Models/Importance_Weights/targetTask_weights.npy")
-    # Firstly, visualize two weights
-    visualize_importance_weights(importance_weights_sourceTask, importance_weights_targetTask)
 
     for task in ['Source Task', 'Target Task']:
-        print(f"Evaluatin {task} Weighted Sum Rate...")
-        if "Source" in task:
-            importance_weights = importance_weights_sourceTask
-        else:
-            importance_weights = importance_weights_targetTask
+        print(f"Evaluatin {task}...")
         power_controls, plot_colors, plot_linestyles = {}, {}, {}
-        # Fractional Programming
-        power_controls["FP"] = FP_power_control(g, importance_weights)
-        plot_colors["FP"] = 'b'
-        plot_linestyles["FP"] = '--'
+        optimal_benchmark = "FP" if "Source" in task else "GP"
+        if "Source" in task:
+            # Fractional Programming
+            power_controls["FP"] = FP_power_control(g)
+            plot_colors["FP"] = 'b'
+            plot_linestyles["FP"] = '--'
+        else:
+            # Geometric Programming
+            power_controls["GP"] = GP_power_control()
+            plot_colors["GP"] = 'b'
+            plot_linestyles["GP"] = '--'
         # Deep Learning methods
         regular_net, transfer_net, ae_transfer_net = Regular_Net().to(DEVICE), Transfer_Net().to(DEVICE), Autoencoder_Transfer_Net().to(DEVICE)
         if "Source" in task:
-            pc = regular_net.sourceTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
+            pc, _ = regular_net.sourceTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
             power_controls["Regular Learning"] = pc.detach().cpu().numpy()
-            pc = transfer_net.sourceTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
+            pc, _ = transfer_net.sourceTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
             power_controls["Transfer Learning"] = pc.detach().cpu().numpy()
-            pc, _ = ae_transfer_net.sourceTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
+            pc, _, _ = ae_transfer_net.sourceTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
             power_controls["Autoencoder Transfer Learning"] = pc.detach().cpu().numpy()
         else:
-            pc = regular_net.targetTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
+            pc, _ = regular_net.targetTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
             power_controls["Regular Learning"] = pc.detach().cpu().numpy()
-            pc = transfer_net.targetTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
+            pc, _ = transfer_net.targetTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
             power_controls["Transfer Learning"] = pc.detach().cpu().numpy()
-            pc = ae_transfer_net.targetTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
+            pc, _ = ae_transfer_net.targetTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
             power_controls["Autoencoder Transfer Learning"] = pc.detach().cpu().numpy()
         plot_colors["Regular Learning"] = 'm'
         plot_linestyles["Regular Learning"] = '--'
@@ -64,18 +63,20 @@ if(__name__ =='__main__'):
             print("[{}]: {:.3f}%;".format(method_key, np.mean(power_percentages)*100), end="")
         print("\n")
 
-        print(f"{task} Weighted-SumRate Performances: ")
+        print(f"{task} Performances: ")
         objectives = {}
         for method_key, power_percentages in power_controls.items():
-            sinrs = compute_SINRs(power_percentages, g)
-            rates = compute_rates(sinrs)
-            assert np.shape(sinrs) == np.shape(rates) == (N_SAMPLES['Test'], N_LINKS)
-            objectives[method_key] = np.sum(rates*importance_weights, axis=1)
-        print("[FP]: {:.3f}Mbps".format(np.mean(objectives["FP"])/1e6))
+            rates = compute_rates(compute_SINRs(power_percentages, g))
+            assert np.shape(rates) == (N_SAMPLES['Test'], N_LINKS)
+            if "Source" in task:
+                objectives[method_key] = np.sum(rates, axis=1)
+            else:
+                objectives[method_key] = np.min(rates, axis=1)
+        print("[{}]: {:.3f}Mbps".format(optimal_benchmark, np.mean(objectives[optimal_benchmark])/1e6))
         for method_key, objective in objectives.items():
-            if method_key == "FP":
+            if method_key == optimal_benchmark:
                 continue
-            print("[{}]: {:.2f}% of FP;".format(method_key, np.mean(objective/objectives["FP"])*100), end="")
+            print("[{}]: {:.3f}Mbps, {:.2f}% of {};".format(method_key, np.mean(objective)/1e6, np.mean(objective/objectives[optimal_benchmark])*100, optimal_benchmark), end="")
         print("\n")
 
 
@@ -107,7 +108,7 @@ if(__name__ =='__main__'):
                 fig, axs = plt.subplots(2,2)
                 fig.suptitle(f"{task} Power Allocation on Test Layout #{id}")
                 axs = axs.flatten()
-                for i, method_key in enumerate(["FP", "Regular Learning", "Transfer Learning", "Autoencoder Transfer Learning"]):
+                for i, method_key in enumerate([optimal_benchmark, "Regular Learning", "Transfer Learning", "Autoencoder Transfer Learning"]):
                     axs[i].set_title(method_key)
                     axs[i].plot(power_controls[method_key][id])
                 plt.show()

@@ -36,8 +36,7 @@ class Neural_Net(nn.Module):
         sinrs_numerators = pc * dl
         sinrs_denominators = torch.squeeze(torch.matmul(cl, torch.unsqueeze(pc,-1)), -1) + NOISE_POWER/TX_POWER
         sinrs = sinrs_numerators / (sinrs_denominators * SINR_GAP)
-        # Un-normalized for better scaled gradients
-        return torch.log(1+sinrs)
+        return torch.log(1+sinrs) # Un-normalized for better scaled gradients
 
     def load_model(self):
         if os.path.exists(self.model_path):
@@ -88,7 +87,10 @@ class Regular_Net(Neural_Net):
             x = lyr(x)
         for lyr  in self.sourceTask_optimizer_module:
             x = lyr(x)
-        return x
+        rates = self.compute_rates(x, g)
+        # source task: sum rate optimization
+        obj = torch.mean(torch.sum(rates, dim=1))
+        return x, obj
 
     def targetTask_powerControl(self, g):
         x = self.preprocess_input(g)
@@ -96,7 +98,11 @@ class Regular_Net(Neural_Net):
             x = lyr(x)
         for lyr  in self.targetTask_optimizer_module:
             x = lyr(x)
-        return x
+        rates = self.compute_rates(x, g)
+        # target task: min rate optimization
+        obj, _ = torch.min(rates, dim=1)
+        obj = torch.mean(obj)
+        return x, obj
 
 
 class Transfer_Net(Neural_Net):
@@ -115,7 +121,10 @@ class Transfer_Net(Neural_Net):
             x = lyr(x)
         for lyr  in self.sourceTask_optimizer_module:
             x = lyr(x)
-        return x
+        rates = self.compute_rates(x, g)
+        # source task: sum rate optimization
+        obj = torch.mean(torch.sum(rates, dim=1))
+        return x, obj
 
     # freeze parameters for transfer learning
     def freeze_parameters(self):
@@ -130,7 +139,11 @@ class Transfer_Net(Neural_Net):
             x = lyr(x)
         for lyr  in self.targetTask_optimizer_module:
             x = lyr(x)
-        return x
+        rates = self.compute_rates(x, g)
+        # target task: min rate optimization
+        obj, _ = torch.min(rates, dim=1)
+        obj = torch.mean(obj)
+        return x, obj
 
 class Autoencoder_Transfer_Net(Neural_Net):
     def __init__(self):
@@ -147,11 +160,11 @@ class Autoencoder_Transfer_Net(Neural_Net):
 
     def construct_decoder_module(self):
         decoder_module = nn.ModuleList()
-        decoder_module.append(nn.Linear(self.feature_length, 3*N_LINKS*N_LINKS))
+        decoder_module.append(nn.Linear(self.feature_length, 2*N_LINKS*N_LINKS))
         decoder_module.append(nn.ReLU())
-        decoder_module.append(nn.Linear(3*N_LINKS*N_LINKS, 3*N_LINKS*N_LINKS))
+        decoder_module.append(nn.Linear(2*N_LINKS*N_LINKS, 2*N_LINKS*N_LINKS))
         decoder_module.append(nn.ReLU())
-        decoder_module.append(nn.Linear(3*N_LINKS*N_LINKS, N_LINKS*N_LINKS))
+        decoder_module.append(nn.Linear(2*N_LINKS*N_LINKS, N_LINKS*N_LINKS))
         return decoder_module
 
     def sourceTask_powerControl(self, g):
@@ -167,7 +180,10 @@ class Autoencoder_Transfer_Net(Neural_Net):
         for lyr in self.sourceTask_optimizer_module:
             features = lyr(features)
         pc = features
-        return pc, self.reconstruct_loss_func(inputs, inputs_reconstructed)
+        rates = self.compute_rates(pc, g)
+        # source task: sum rate optimization
+        obj = torch.mean(torch.sum(rates, dim=1))
+        return pc, obj, self.reconstruct_loss_func(inputs, inputs_reconstructed)
     
     # freeze parameters for transfer learning
     def freeze_parameters(self):
@@ -182,11 +198,17 @@ class Autoencoder_Transfer_Net(Neural_Net):
             x = lyr(x)
         for lyr in self.targetTask_optimizer_module:
             x = lyr(x)
-        return x
+        rates = self.compute_rates(x, g)
+        # target task: min rate optimization
+        obj, _ = torch.min(rates, dim=1)
+        obj = torch.mean(obj)
+        return x, obj
 
 if __name__ == "__main__":
-    regular_net = Regular_Net()
-    n_parameters = sum(p.numel() for p in regular_net.sourceTask_feature_module.parameters())
+    ae_transfer_net = Autoencoder_Transfer_Net()
+    n_parameters = sum(p.numel() for p in ae_transfer_net.feature_module.parameters())
     print("The feature module number of parameters: ", n_parameters)
-    n_parameters = sum(p.numel() for p in regular_net.targetTask_optimizer_module.parameters())
+    n_parameters = sum(p.numel() for p in ae_transfer_net.sourceTask_optimizer_module.parameters())
     print("The optimizer module number of parameters: ", n_parameters)
+    n_parameters = sum(p.numel() for p in ae_transfer_net.decoder_module.parameters())
+    print("The decoder module number of parameters: ", n_parameters)
