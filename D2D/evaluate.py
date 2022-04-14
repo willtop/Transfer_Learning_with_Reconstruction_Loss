@@ -7,7 +7,7 @@ from neural_nets import Regular_Net, Transfer_Net, Autoencoder_Transfer_Net
 from utils import *
 from setup import *
 
-VISUALIZE_POWERCONTROL = True
+VISUALIZE_POWERCONTROL = False
 
 if(__name__ =='__main__'):
     g = np.load("Data/g_test_{}.npy".format(SETTING_STRING))
