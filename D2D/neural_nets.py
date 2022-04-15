@@ -9,7 +9,7 @@ class Neural_Net(nn.Module):
     def __init__(self):
         super().__init__()
         # model architecture attribute
-        self.feature_length = N_LINKS * N_LINKS 
+        self.feature_length = N_LINKS * N_LINKS
         # attributes to be overridden by subclasses
         self.model_type = None
         self.model_path = None
@@ -53,11 +53,11 @@ class Neural_Net(nn.Module):
     # Modules to compose different types of neural net
     def construct_feature_module(self):
         feature_module = nn.ModuleList()
-        feature_module.append(nn.Linear(N_LINKS*N_LINKS, 4*N_LINKS*N_LINKS))
+        feature_module.append(nn.Linear(N_LINKS*N_LINKS, 2*N_LINKS*N_LINKS))
         feature_module.append(nn.ReLU())
-        feature_module.append(nn.Linear(4*N_LINKS*N_LINKS, 4*N_LINKS*N_LINKS))
+        feature_module.append(nn.Linear(2*N_LINKS*N_LINKS, 2*N_LINKS*N_LINKS))
         feature_module.append(nn.ReLU())
-        feature_module.append(nn.Linear(4*N_LINKS*N_LINKS, self.feature_length))
+        feature_module.append(nn.Linear(2*N_LINKS*N_LINKS, self.feature_length))
         feature_module.append(nn.ReLU())
         return feature_module
     
@@ -65,7 +65,9 @@ class Neural_Net(nn.Module):
         optimizer_module = nn.ModuleList()
         optimizer_module.append(nn.Linear(self.feature_length, 4*N_LINKS))
         optimizer_module.append(nn.ReLU())
-        optimizer_module.append(nn.Linear(4*N_LINKS, N_LINKS))
+        optimizer_module.append(nn.Linear(4*N_LINKS, 2*N_LINKS))
+        optimizer_module.append(nn.ReLU())
+        optimizer_module.append(nn.Linear(2*N_LINKS, N_LINKS))
         # with power control output being 0~1
         optimizer_module.append(nn.Sigmoid())
         return optimizer_module
@@ -161,8 +163,6 @@ class Autoencoder_Transfer_Net(Neural_Net):
     def construct_decoder_module(self):
         decoder_module = nn.ModuleList()
         decoder_module.append(nn.Linear(self.feature_length, 2*N_LINKS*N_LINKS))
-        decoder_module.append(nn.ReLU())
-        decoder_module.append(nn.Linear(2*N_LINKS*N_LINKS, 2*N_LINKS*N_LINKS))
         decoder_module.append(nn.ReLU())
         decoder_module.append(nn.Linear(2*N_LINKS*N_LINKS, N_LINKS*N_LINKS))
         return decoder_module

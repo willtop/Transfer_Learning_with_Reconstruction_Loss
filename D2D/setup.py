@@ -44,7 +44,7 @@ N_SAMPLES = {'SourceTask':{
     'Train': int(1e6),
     'Valid': 5000
 }, 'TargetTask': {
-    'Train': int(5e3),
+    'Train': int(2e3),
     'Valid': 2000
 }, 'Test': 1000
 }

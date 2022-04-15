@@ -61,7 +61,7 @@ def shuffle_divide_batches(inputs, n_batches):
     return inputs_batches
 
 EARLY_STOPPING = False
-LEARNING_RATE = 1e-4
+LEARNING_RATE = 5e-4
 
 if(__name__=="__main__"):
     parser = argparse.ArgumentParser(description="main script argument parser")
@@ -77,10 +77,11 @@ if(__name__=="__main__"):
     """ 
     Source-Task Training 
     """
-    N_EPOCHES = 15
+    N_EPOCHES = 20
     MINIBATCH_SIZE = 2000
     print("[Source Task] Loading data...")
     g = np.load(f"Data/g_sourceTask_{SETTING_STRING}.npy")
+    assert np.shape(g)[0] == N_SAMPLES['SourceTask']['Train'] + N_SAMPLES['SourceTask']['Valid']
     g_train, g_valid = g[:N_SAMPLES['SourceTask']['Train']], g[-N_SAMPLES['SourceTask']['Valid']:]
     assert N_SAMPLES['SourceTask']['Train'] % MINIBATCH_SIZE == 0
     n_minibatches = int(N_SAMPLES['SourceTask']['Train'] / MINIBATCH_SIZE)
@@ -150,10 +151,11 @@ if(__name__=="__main__"):
     """ 
     Target Task Training
     """
-    N_EPOCHES = 1500
-    MINIBATCH_SIZE = 200
+    N_EPOCHES = 3000
+    MINIBATCH_SIZE = 100
     print("[Target Task] Loading data...")
     g = np.load(f"Data/g_targetTask_{SETTING_STRING}.npy")
+    assert np.shape(g)[0] == N_SAMPLES['TargetTask']['Train'] + N_SAMPLES['TargetTask']['Valid']
     g_train, g_valid = g[:N_SAMPLES['TargetTask']['Train']], g[-N_SAMPLES['TargetTask']['Valid']:]
     assert N_SAMPLES['TargetTask']['Train'] % MINIBATCH_SIZE == 0
     n_minibatches = int(N_SAMPLES['TargetTask']['Train'] / MINIBATCH_SIZE)
