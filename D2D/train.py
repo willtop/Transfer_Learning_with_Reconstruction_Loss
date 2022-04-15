@@ -60,8 +60,9 @@ def shuffle_divide_batches(inputs, n_batches):
     inputs_batches = np.split(inputs[perm], n_batches, axis=0)
     return inputs_batches
 
-EARLY_STOPPING = False
-LEARNING_RATE = 5e-4
+EARLY_STOPPING = True
+LEARNING_RATE = 1e-4
+COMBINE_WEIGHT_RECONSTRUCT = 2
 
 if(__name__=="__main__"):
     parser = argparse.ArgumentParser(description="main script argument parser")
@@ -107,7 +108,7 @@ if(__name__=="__main__"):
             # AutoEncoder Transfer Net
             _, objAvg, reconstruct_loss = ae_transfer_net.sourceTask_powerControl(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
             ae_transfer_loss = -objAvg
-            ae_transfer_loss_combined = ae_transfer_loss + reconstruct_loss
+            ae_transfer_loss_combined = ae_transfer_loss + COMBINE_WEIGHT_RECONSTRUCT * reconstruct_loss
             # Training and recording loss
             regular_loss.backward(); optimizer_regular.step()
             transfer_loss.backward(); optimizer_transfer.step()
@@ -125,7 +126,7 @@ if(__name__=="__main__"):
                     transfer_loss = -objAvg.item()
                     _, objAvg, reconstruct_loss = ae_transfer_net.sourceTask_powerControl(torch.tensor(g_valid, dtype=torch.float32).to(DEVICE))
                     ae_transfer_loss = -objAvg.item()
-                    ae_transfer_loss_combined = ae_transfer_loss + reconstruct_loss.item()
+                    ae_transfer_loss_combined = ae_transfer_loss + COMBINE_WEIGHT_RECONSTRUCT * reconstruct_loss.item()
                 train_loss_eps.append([regular_loss_ep/(j+1), transfer_loss_ep/(j+1), ae_transfer_loss_ep/(j+1), ae_transfer_loss_combined_ep/(j+1)])
                 valid_loss_eps.append([regular_loss, transfer_loss, ae_transfer_loss, ae_transfer_loss_combined])
                 print("[Source Task][Regular] Tr:{:6.3e}; Va:{:6.3e} [Transfer] Tr: {:6.3e}; Va:{:6.3e} [AE Transfer] Tr: {:6.3e}; Va: {:6.3e}".format(
@@ -151,7 +152,7 @@ if(__name__=="__main__"):
     """ 
     Target Task Training
     """
-    N_EPOCHES = 3000
+    N_EPOCHES = 7000
     MINIBATCH_SIZE = 100
     print("[Target Task] Loading data...")
     g = np.load(f"Data/g_targetTask_{SETTING_STRING}.npy")
