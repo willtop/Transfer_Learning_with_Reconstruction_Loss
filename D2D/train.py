@@ -78,7 +78,7 @@ if(__name__=="__main__"):
     """ 
     Source-Task Training 
     """
-    N_EPOCHES = 20
+    N_EPOCHES = 50
     MINIBATCH_SIZE = 2000
     print("[Source Task] Loading data...")
     g = np.load(f"Data/g_sourceTask_{SETTING_STRING}.npy")
@@ -162,6 +162,9 @@ if(__name__=="__main__"):
     n_minibatches = int(N_SAMPLES['TargetTask']['Train'] / MINIBATCH_SIZE)
     print(f"[Target Task] Data Loaded! With {N_SAMPLES['TargetTask']['Train']} training samples ({n_minibatches} minibatches) and {N_SAMPLES['TargetTask']['Valid']} validation samples.")
 
+    # Create neural network objects again so they load weights from previous early stopping best checkpoint on source task
+    regular_net, transfer_net, ae_transfer_net = \
+            Regular_Net().to(DEVICE), Transfer_Net().to(DEVICE), Autoencoder_Transfer_Net().to(DEVICE)
     print("[Target Task] Freeze the neural network parameters up to the feature layers...")
     transfer_net.freeze_parameters()
     ae_transfer_net.freeze_parameters()
