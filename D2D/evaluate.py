@@ -3,11 +3,14 @@
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+from scipy.io import savemat
 from neural_nets import Regular_Net, Transfer_Net, Autoencoder_Transfer_Net
 from utils import *
 from setup import *
 
 VISUALIZE_POWERCONTROL = False
+# With the script returning inconsistent result, might need to save the power allocation and verify in matlab
+VERIFY_MINRATE_MATLAB = True
 
 if(__name__ =='__main__'):
     g = np.load("Data/g_test_{}.npy".format(SETTING_STRING))
@@ -44,6 +47,11 @@ if(__name__ =='__main__'):
             power_controls["Transfer Learning"] = pc.detach().cpu().numpy()
             pc, _ = ae_transfer_net.targetTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
             power_controls["Autoencoder Transfer Learning"] = pc.detach().cpu().numpy()
+            if VERIFY_MINRATE_MATLAB:
+                print("Saving Min Rate allocation into Matlab files, to be verified with Matlab script.")
+                savemat(f"Data/Regular_MinRateAlloc_{SETTING_STRING}.mat", {'regular': power_controls["Regular Learning"]})
+                savemat(f"Data/Transfer_MinRateAlloc_{SETTING_STRING}.mat", {'transfer': power_controls["Transfer Learning"]})
+                savemat(f"Data/AE_Transfer_MinRateAlloc_{SETTING_STRING}.mat", {'ae_transfer': power_controls["Autoencoder Transfer Learning"]})
         plot_colors["Regular Learning"] = 'm'
         plot_linestyles["Regular Learning"] = '--'
         plot_colors["Transfer Learning"] = 'g'

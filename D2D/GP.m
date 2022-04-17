@@ -1,5 +1,5 @@
 close all
-clear all
+clear
 clc
 
 % D2D Environment settings
