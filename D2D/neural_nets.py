@@ -40,7 +40,11 @@ class Neural_Net(nn.Module):
 
     def load_model(self):
         if os.path.exists(self.model_path):
-            self.load_state_dict(torch.load(self.model_path))
+            if not torch.cuda.is_available():
+                print("Working on a CPU! Loading neural nets while mapping storages on CPU...")
+                self.load_state_dict(torch.load(self.model_path, map_location=torch.device('cpu')))
+            else:
+                self.load_state_dict(torch.load(self.model_path))
             print("[{}] Load trained model from: {}".format(self.model_type, self.model_path))
         else:
             print("[{}] Train from scratch.".format(self.model_type))
