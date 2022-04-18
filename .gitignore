@@ -130,4 +130,6 @@ dmypy.json
 
 # added by myself
 D2D/Data/*
+!D2D/Data/GP*
+!D2D/Data/g_test*
 *.asv
