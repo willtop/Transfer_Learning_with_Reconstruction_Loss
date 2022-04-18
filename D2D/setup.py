@@ -50,7 +50,7 @@ N_SAMPLES = {'SourceTask':{
 }
 
 # set random seed
-RANDOM_SEED = 123
+RANDOM_SEED = 1234
 os.environ['PYTHONHASHSEED'] = str(RANDOM_SEED)
 random.seed(RANDOM_SEED)
 np.random.seed(RANDOM_SEED)
