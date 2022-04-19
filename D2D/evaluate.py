@@ -8,9 +8,8 @@ from neural_nets import Regular_Net, Transfer_Net, Autoencoder_Transfer_Net
 from utils import *
 from setup import *
 
-VISUALIZE_POWERCONTROL = False
-# With the script returning inconsistent result, might need to save the power allocation and verify in matlab
-VERIFY_MINRATE_MATLAB = True
+VISUALIZE_SOURCETASK = False
+VISUALIZE_TARGETTASK = True
 
 if(__name__ =='__main__'):
     g = np.load("Data/g_test_{}.npy".format(SETTING_STRING))
@@ -47,11 +46,6 @@ if(__name__ =='__main__'):
             power_controls["Transfer Learning"] = pc.detach().cpu().numpy()
             pc, _ = ae_transfer_net.targetTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
             power_controls["Autoencoder Transfer Learning"] = pc.detach().cpu().numpy()
-            if VERIFY_MINRATE_MATLAB:
-                print("Saving Min Rate allocation into Matlab files, to be verified with Matlab script.")
-                savemat(f"Data/Regular_MinRateAlloc_{SETTING_STRING}.mat", {'regular': power_controls["Regular Learning"]})
-                savemat(f"Data/Transfer_MinRateAlloc_{SETTING_STRING}.mat", {'transfer': power_controls["Transfer Learning"]})
-                savemat(f"Data/AE_Transfer_MinRateAlloc_{SETTING_STRING}.mat", {'ae_transfer': power_controls["Autoencoder Transfer Learning"]})
         plot_colors["Regular Learning"] = 'm'
         plot_linestyles["Regular Learning"] = '--'
         plot_colors["Transfer Learning"] = 'g'
@@ -72,10 +66,11 @@ if(__name__ =='__main__'):
         print("\n")
 
         print(f"{task} Performances: ")
-        objectives = {}
+        rates_all, objectives = {}, {}
         for method_key, power_percentages in power_controls.items():
             rates = compute_rates(compute_SINRs(power_percentages, g))
             assert np.shape(rates) == (N_SAMPLES['Test'], N_LINKS)
+            rates_all[method_key] = rates
             if "Source" in task:
                 objectives[method_key] = np.sum(rates, axis=1)
             else:
@@ -109,15 +104,26 @@ if(__name__ =='__main__'):
         plt.subplots_adjust(left=0.1, right=0.95, bottom=0.1, top=0.95)
         plt.show()   
 
-        # Visualize power control solutions for selected layouts
-        if VISUALIZE_POWERCONTROL:
+        # Visualize power control solutions and achieved rates for selected layouts
+        if ("Source" in task and VISUALIZE_SOURCETASK) or ("Target" in task and VISUALIZE_TARGETTASK):
+            methods_plotted = [optimal_benchmark, "Regular Learning", "Transfer Learning", "Autoencoder Transfer Learning", "Random Power"]
             rand_idxes = np.random.randint(N_SAMPLES['Test'], size=3)    
             for id in rand_idxes:
-                fig, axs = plt.subplots(2,2)
-                fig.suptitle(f"{task} Power Allocation on Test Layout #{id}")
+                fig, axs = plt.subplots(3,1)
+                fig.suptitle(f"{task} Test Layout #{id}")
                 axs = axs.flatten()
-                for i, method_key in enumerate([optimal_benchmark, "Regular Learning", "Transfer Learning", "Autoencoder Transfer Learning"]):
-                    axs[i].set_title(method_key)
-                    axs[i].plot(power_controls[method_key][id])
+                # plot channels
+                axs[0].set_title("Channels")
+                axs[0].plot(g[id].flatten())
+                # plot power allocations
+                axs[1].set_title("Power Allocations")
+                for method_key in methods_plotted:
+                    axs[1].plot(power_controls[method_key][id], label=method_key)
+                axs[1].legend()
+                # plot achieved rates
+                axs[2].set_title("Link Rate")
+                for method_key in methods_plotted:
+                    axs[2].plot(rates_all[method_key][id], label=method_key)
+                axs[2].legend()
                 plt.show()
     print("Evaluation Finished Successfully!")

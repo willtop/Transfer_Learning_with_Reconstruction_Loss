@@ -78,7 +78,7 @@ if(__name__=="__main__"):
     """ 
     Source-Task Training 
     """
-    N_EPOCHES = 50
+    N_EPOCHES = 100
     MINIBATCH_SIZE = 2000
     print("[Source Task] Loading data...")
     g = np.load(f"Data/g_sourceTask_{SETTING_STRING}.npy")
@@ -152,7 +152,7 @@ if(__name__=="__main__"):
     """ 
     Target Task Training
     """
-    N_EPOCHES = 7000
+    N_EPOCHES = 10000
     MINIBATCH_SIZE = 100
     print("[Target Task] Loading data...")
     g = np.load(f"Data/g_targetTask_{SETTING_STRING}.npy")

@@ -13,13 +13,13 @@ print("Using device: ", DEVICE)
 BANDWIDTH = 5e6
 CARRIER_FREQUENCY = 50e9 # 50GHz carrier frequency for millimeter wave
 WAVELENGTH = 2.998e8/CARRIER_FREQUENCY
-_NOISE_dBm_Hz = -169
+_NOISE_dBm_Hz = -150
 NOISE_POWER = np.power(10, ((_NOISE_dBm_Hz-30)/10)) * BANDWIDTH
 if SETTING=='A':
     N_LINKS = 10
-    FIELD_LENGTH = 100
-    SHORTEST_DIRECTLINK = 10
-    LONGEST_DIRECTLINK = 20
+    FIELD_LENGTH = 150
+    SHORTEST_DIRECTLINK = 5
+    LONGEST_DIRECTLINK = 30
 elif SETTING=='B':
     N_LINKS = 15
     FIELD_LENGTH = 200
@@ -41,16 +41,16 @@ ANTENNA_GAIN_DB = 6
 # number of samples 
 # Note: the testing layouts generated in the "MinRate" is used to test both sum rate and min rate
 N_SAMPLES = {'SourceTask':{
-    'Train': int(1e6),
+    'Train': int(5e5),
     'Valid': 5000
 }, 'TargetTask': {
     'Train': int(1000),
     'Valid': 2000
-}, 'Test': 1000
+}, 'Test': 2000
 }
 
 # set random seed
-RANDOM_SEED = 1234
+RANDOM_SEED = 123
 os.environ['PYTHONHASHSEED'] = str(RANDOM_SEED)
 random.seed(RANDOM_SEED)
 np.random.seed(RANDOM_SEED)
