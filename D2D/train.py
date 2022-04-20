@@ -61,7 +61,7 @@ def shuffle_divide_batches(inputs, n_batches):
     return inputs_batches
 
 EARLY_STOPPING = True
-COMBINE_WEIGHT_RECONSTRUCT = 5
+COMBINE_WEIGHT_RECONSTRUCT = 4
 
 if(__name__=="__main__"):
     parser = argparse.ArgumentParser(description="main script argument parser")
@@ -152,7 +152,7 @@ if(__name__=="__main__"):
     """ 
     Target Task Training
     """
-    N_EPOCHES = 10000
+    N_EPOCHES = 15000
     MINIBATCH_SIZE = 100
     LEARNING_RATE_TARGETTASK = 1e-4
     print("[Target Task] Loading data...")
