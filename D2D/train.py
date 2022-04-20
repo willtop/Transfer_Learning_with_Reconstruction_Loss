@@ -61,8 +61,7 @@ def shuffle_divide_batches(inputs, n_batches):
     return inputs_batches
 
 EARLY_STOPPING = True
-LEARNING_RATE = 1e-4
-COMBINE_WEIGHT_RECONSTRUCT = 2
+COMBINE_WEIGHT_RECONSTRUCT = 3
 
 if(__name__=="__main__"):
     parser = argparse.ArgumentParser(description="main script argument parser")
@@ -80,6 +79,7 @@ if(__name__=="__main__"):
     """
     N_EPOCHES = 100
     MINIBATCH_SIZE = 2000
+    LEARNING_RATE_SOURCETASK = 1e-3
     print("[Source Task] Loading data...")
     g = np.load(f"Data/g_sourceTask_{SETTING_STRING}.npy")
     assert np.shape(g)[0] == N_SAMPLES['SourceTask']['Train'] + N_SAMPLES['SourceTask']['Valid']
@@ -89,7 +89,7 @@ if(__name__=="__main__"):
     print(f"[Source Task] Data Loaded! With {N_SAMPLES['SourceTask']['Train']} training samples ({n_minibatches} minibatches) and {N_SAMPLES['SourceTask']['Valid']} validation samples.")
 
     optimizer_regular, optimizer_transfer, optimizer_ae_transfer = \
-            optim.Adam(regular_net.parameters(), lr=LEARNING_RATE), optim.Adam(transfer_net.parameters(), lr=LEARNING_RATE), optim.Adam(ae_transfer_net.parameters(), lr=LEARNING_RATE)
+            optim.Adam(regular_net.parameters(), lr=LEARNING_RATE_SOURCETASK), optim.Adam(transfer_net.parameters(), lr=LEARNING_RATE_SOURCETASK), optim.Adam(ae_transfer_net.parameters(), lr=LEARNING_RATE_SOURCETASK)
     regular_loss_min, transfer_loss_min, ae_transfer_loss_combined_min = np.inf, np.inf, np.inf
     train_loss_eps, valid_loss_eps = [], []
     for i in trange(1, N_EPOCHES+1):
@@ -154,6 +154,7 @@ if(__name__=="__main__"):
     """
     N_EPOCHES = 10000
     MINIBATCH_SIZE = 100
+    LEARNING_RATE_TARGETTASK = 1e-4
     print("[Target Task] Loading data...")
     g = np.load(f"Data/g_targetTask_{SETTING_STRING}.npy")
     assert np.shape(g)[0] == N_SAMPLES['TargetTask']['Train'] + N_SAMPLES['TargetTask']['Valid']
@@ -169,9 +170,9 @@ if(__name__=="__main__"):
     transfer_net.freeze_parameters()
     ae_transfer_net.freeze_parameters()
     optimizer_regular, optimizer_transfer, optimizer_ae_transfer = \
-            optim.Adam(filter(lambda para: para.requires_grad, regular_net.parameters()), lr=LEARNING_RATE), \
-            optim.Adam(filter(lambda para: para.requires_grad, transfer_net.parameters()), lr=LEARNING_RATE), \
-            optim.Adam(filter(lambda para: para.requires_grad, ae_transfer_net.parameters()), lr=LEARNING_RATE)
+            optim.Adam(filter(lambda para: para.requires_grad, regular_net.parameters()), lr=LEARNING_RATE_TARGETTASK), \
+            optim.Adam(filter(lambda para: para.requires_grad, transfer_net.parameters()), lr=LEARNING_RATE_TARGETTASK), \
+            optim.Adam(filter(lambda para: para.requires_grad, ae_transfer_net.parameters()), lr=LEARNING_RATE_TARGETTASK)
     regular_loss_min, transfer_loss_min, ae_transfer_loss_min = np.inf, np.inf, np.inf
     train_loss_eps, valid_loss_eps = [], []
     for i in trange(1, N_EPOCHES+1):
