@@ -61,7 +61,7 @@ def shuffle_divide_batches(inputs, n_batches):
     return inputs_batches
 
 EARLY_STOPPING = True
-COMBINE_WEIGHT_RECONSTRUCT = 3
+COMBINE_WEIGHT_RECONSTRUCT = 5
 
 if(__name__=="__main__"):
     parser = argparse.ArgumentParser(description="main script argument parser")
