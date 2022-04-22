@@ -38,16 +38,42 @@ SINR_GAP_dB = 0
 SINR_GAP = np.power(10, SINR_GAP_dB/10)
 ANTENNA_GAIN_DB = 6
 
-# number of samples 
-# Note: the testing layouts generated in the "MinRate" is used to test both sum rate and min rate
-N_SAMPLES = {'SourceTask':{
-    'Train': int(5e5),
-    'Valid': 5000
-}, 'TargetTask': {
-    'Train': int(1000),
-    'Valid': 2000
-}, 'Test': 2000
-}
+# Transfer Configuration on Task Specifications
+TRANSFER_CONFIGURE = 'A'
+
+if TRANSFER_CONFIGURE == 'A':
+    SOURCETASK = {'Type': 'Source-Task',
+        'Task': 'Sum-Rate',
+        'Train': int(5e5),
+        'Valid': 5000}
+    TARGETTASK = {'Type': 'Target-Task',
+        'Task': 'Min-Rate',
+        'Train': int(1000),
+        'Valid': 2000} 
+elif TRANSFER_CONFIGURE == 'B':
+    SOURCETASK = {'Type': 'Source-Task',
+        'Task': 'Sum-Rate',
+        'Train': int(5e5),
+        'Valid': 5000}
+    TARGETTASK = {'Type': 'Target-Task',
+        'Task': 'Jain-Fairness',
+        'Train': int(1000),
+        'Valid': 2000}
+elif TRANSFER_CONFIGURE == 'C':
+    SOURCETASK = {'Type': 'Source-Task',
+        'Task': 'Sum-Rate',
+        'Train': int(5e5),
+        'Valid': 5000}
+    TARGETTASK = {'Type': 'Target-Task',
+        'Task': 'Harmonic',
+        'Train': int(1000),
+        'Valid': 2000}
+else:
+    print(f"Invalid Transfer Configuration Option: {TRANSFER_CONFIGURE}! Exiting...")
+    exit(1)
+
+N_TEST_SAMPLES = 2000
+
 
 # set random seed
 RANDOM_SEED = 123
