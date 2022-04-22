@@ -18,8 +18,8 @@ def plot_training_curves():
     fig, axes = plt.subplots(2,2)
     fig.suptitle(f"Loss over D2D networks {SETTING_STRING}")
     # Plot for source task
-    train_losses = np.load(f"Trained_Models/train_losses_sourceTask_{SETTING_STRING}.npy")
-    valid_losses = np.load(f"Trained_Models/valid_losses_sourceTask_{SETTING_STRING}.npy")
+    train_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/train_losses_sourceTask_{SETTING_STRING}.npy")
+    valid_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/valid_losses_sourceTask_{SETTING_STRING}.npy")
     axes[0][0].set_xlabel("Epoches")
     axes[0][0].set_ylabel("Training Losses (Source Task)")
     axes[0][0].plot(train_losses[:,0], 'g', label="Regular Network")
@@ -35,8 +35,8 @@ def plot_training_curves():
     axes[0][1].plot(valid_losses[:,3], 'r--', label="AE Transfer Network Combined")
     axes[0][1].legend()
     # Plot for target task
-    train_losses = np.load(f"Trained_Models/train_losses_targetTask_{SETTING_STRING}.npy")
-    valid_losses = np.load(f"Trained_Models/valid_losses_targetTask_{SETTING_STRING}.npy")
+    train_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/train_losses_targetTask_{SETTING_STRING}.npy")
+    valid_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/valid_losses_targetTask_{SETTING_STRING}.npy")
     axes[1][0].set_xlabel("Epoches")
     axes[1][0].set_ylabel("Training Losses (Target Task)")
     axes[1][0].plot(train_losses[:,0], 'g', label="Regular Network")
@@ -82,11 +82,11 @@ if(__name__=="__main__"):
     LEARNING_RATE_SOURCETASK = 1e-3
     print("[Source Task] Loading data...")
     g = np.load(f"Data/g_sourceTask_{SETTING_STRING}.npy")
-    assert np.shape(g)[0] == N_SAMPLES['SourceTask']['Train'] + N_SAMPLES['SourceTask']['Valid']
-    g_train, g_valid = g[:N_SAMPLES['SourceTask']['Train']], g[-N_SAMPLES['SourceTask']['Valid']:]
-    assert N_SAMPLES['SourceTask']['Train'] % MINIBATCH_SIZE == 0
-    n_minibatches = int(N_SAMPLES['SourceTask']['Train'] / MINIBATCH_SIZE)
-    print(f"[Source Task] Data Loaded! With {N_SAMPLES['SourceTask']['Train']} training samples ({n_minibatches} minibatches) and {N_SAMPLES['SourceTask']['Valid']} validation samples.")
+    assert np.shape(g)[0] == SOURCETASK['Train'] + SOURCETASK['Valid']
+    g_train, g_valid = g[:SOURCETASK['Train']], g[-SOURCETASK['Valid']:]
+    assert SOURCETASK['Train'] % MINIBATCH_SIZE == 0
+    n_minibatches = int(SOURCETASK['Train'] / MINIBATCH_SIZE)
+    print(f"[Source Task on {SOURCETASK['Task']}] Data Loaded! With {SOURCETASK['Train']} training samples ({n_minibatches} minibatches) and {SOURCETASK['Valid']} validation samples.")
 
     optimizer_regular, optimizer_transfer, optimizer_ae_transfer = \
             optim.Adam(regular_net.parameters(), lr=LEARNING_RATE_SOURCETASK), optim.Adam(transfer_net.parameters(), lr=LEARNING_RATE_SOURCETASK), optim.Adam(ae_transfer_net.parameters(), lr=LEARNING_RATE_SOURCETASK)
@@ -146,8 +146,8 @@ if(__name__=="__main__"):
                     regular_net.save_model()
                     transfer_net.save_model()
                     ae_transfer_net.save_model()
-                np.save(f"Trained_Models/train_losses_sourceTask_{SETTING_STRING}.npy", np.array(train_loss_eps))
-                np.save(f"Trained_Models/valid_losses_sourceTask_{SETTING_STRING}.npy", np.array(valid_loss_eps))
+                np.save(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/train_losses_sourceTask_{SETTING_STRING}.npy", np.array(train_loss_eps))
+                np.save(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/valid_losses_sourceTask_{SETTING_STRING}.npy", np.array(valid_loss_eps))
 
     """ 
     Target Task Training
@@ -157,11 +157,11 @@ if(__name__=="__main__"):
     LEARNING_RATE_TARGETTASK = 1e-4
     print("[Target Task] Loading data...")
     g = np.load(f"Data/g_targetTask_{SETTING_STRING}.npy")
-    assert np.shape(g)[0] == N_SAMPLES['TargetTask']['Train'] + N_SAMPLES['TargetTask']['Valid']
-    g_train, g_valid = g[:N_SAMPLES['TargetTask']['Train']], g[-N_SAMPLES['TargetTask']['Valid']:]
-    assert N_SAMPLES['TargetTask']['Train'] % MINIBATCH_SIZE == 0
-    n_minibatches = int(N_SAMPLES['TargetTask']['Train'] / MINIBATCH_SIZE)
-    print(f"[Target Task] Data Loaded! With {N_SAMPLES['TargetTask']['Train']} training samples ({n_minibatches} minibatches) and {N_SAMPLES['TargetTask']['Valid']} validation samples.")
+    assert np.shape(g)[0] == TARGETTASK['Train'] + TARGETTASK['Valid']
+    g_train, g_valid = g[:TARGETTASK['Train']], g[-TARGETTASK['Valid']:]
+    assert TARGETTASK['Train'] % MINIBATCH_SIZE == 0
+    n_minibatches = int(TARGETTASK['Train'] / MINIBATCH_SIZE)
+    print(f"[Target Task] Data Loaded! With {TARGETTASK['Train']} training samples ({n_minibatches} minibatches) and {TARGETTASK['Valid']} validation samples.")
 
     # Create neural network objects again so they load weights from previous early stopping best checkpoint on source task
     regular_net, transfer_net, ae_transfer_net = \
@@ -225,7 +225,7 @@ if(__name__=="__main__"):
             regular_net.save_model()
             transfer_net.save_model()
             ae_transfer_net.save_model()
-        np.save(f"Trained_Models/train_losses_targetTask_{SETTING_STRING}.npy", np.array(train_loss_eps))
-        np.save(f"Trained_Models/valid_losses_targetTask_{SETTING_STRING}.npy", np.array(valid_loss_eps))
+        np.save(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/train_losses_targetTask_{SETTING_STRING}.npy", np.array(train_loss_eps))
+        np.save(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/valid_losses_targetTask_{SETTING_STRING}.npy", np.array(valid_loss_eps))
 
     print(f"Training finished!")

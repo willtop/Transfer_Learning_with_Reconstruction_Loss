@@ -22,21 +22,21 @@ if __name__ == '__main__':
         exit(0)
 
     if GENERATE_CHANNELS_SOURCETASK:
-        print("Generate wireless channels for source task training, including statistics for input normalization......")
-        g, _ = generate_D2D_channelGains(N_SAMPLES['SourceTask']['Train']+N_SAMPLES['SourceTask']['Valid'])
+        print(f"Generate wireless channels for {SOURCETASK['Type']} {SOURCETASK['Task']} training, including statistics for input normalization......")
+        g, _ = generate_D2D_channelGains(SOURCETASK['Train']+SOURCETASK['Valid'])
         np.save("Data/g_sourceTask_{}.npy".format(SETTING_STRING), g)
         # Use the sum rate train data for input normalization stats
-        np.save("Trained_Models/Input_Normalization_Stats/g_train_mean_{}.npy".format(SETTING_STRING), np.mean(g[:N_SAMPLES['SourceTask']['Train']], axis=0))
-        np.save("Trained_Models/Input_Normalization_Stats/g_train_std_{}.npy".format(SETTING_STRING), np.std(g[:N_SAMPLES['SourceTask']['Train']], axis=0))
+        np.save("Trained_Models/Input_Normalization_Stats/g_train_mean_{}.npy".format(SETTING_STRING), np.mean(g[:SOURCETASK['Train']], axis=0))
+        np.save("Trained_Models/Input_Normalization_Stats/g_train_std_{}.npy".format(SETTING_STRING), np.std(g[:SOURCETASK['Train']], axis=0))
 
     if GENERATE_CHANNELS_TARGETTASK:
         print("Generate wireless channels for target task training......")
-        g, _ = generate_D2D_channelGains(N_SAMPLES['TargetTask']['Train']+N_SAMPLES['TargetTask']['Valid'])
+        g, _ = generate_D2D_channelGains(TARGETTASK['Train']+TARGETTASK['Valid'])
         np.save("Data/g_targetTask_{}.npy".format(SETTING_STRING), g)
 
     if GENERATE_CHANNELS_TEST:
         print("Generate wireless channels for testing......")
-        g, _ = generate_D2D_channelGains(N_SAMPLES['Test'])
+        g, _ = generate_D2D_channelGains(N_TEST_SAMPLES)
         np.save("Data/g_test_{}.npy".format(SETTING_STRING), g)
         print("Save test channels to matlab file for GP on min-rate optimization...")
         savemat("Data/g_test_{}.mat".format(SETTING_STRING), {'g': g})

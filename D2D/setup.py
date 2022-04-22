@@ -39,33 +39,39 @@ SINR_GAP = np.power(10, SINR_GAP_dB/10)
 ANTENNA_GAIN_DB = 6
 
 # Transfer Configuration on Task Specifications
-TRANSFER_CONFIGURE = 'A'
+TRANSFER_CONFIGURE = 'II'
 
-if TRANSFER_CONFIGURE == 'A':
+if TRANSFER_CONFIGURE == 'I':
     SOURCETASK = {'Type': 'Source-Task',
-        'Task': 'Sum-Rate',
+        'Task': 'Sum',
+        'Fullname': 'Sum-Rate',
         'Train': int(5e5),
         'Valid': 5000}
     TARGETTASK = {'Type': 'Target-Task',
-        'Task': 'Min-Rate',
+        'Task': 'Min',
+        'Fullname': 'Min-Rate',
         'Train': int(1000),
         'Valid': 2000} 
-elif TRANSFER_CONFIGURE == 'B':
+elif TRANSFER_CONFIGURE == 'II':
     SOURCETASK = {'Type': 'Source-Task',
-        'Task': 'Sum-Rate',
+        'Task': 'Sum',
+        'Fullname': 'Sum-Rate',
         'Train': int(5e5),
         'Valid': 5000}
     TARGETTASK = {'Type': 'Target-Task',
-        'Task': 'Jain-Fairness',
+        'Task': 'Jain',
+        'Fullname': 'Jain-Fairness',
         'Train': int(1000),
         'Valid': 2000}
-elif TRANSFER_CONFIGURE == 'C':
+elif TRANSFER_CONFIGURE == 'III':
     SOURCETASK = {'Type': 'Source-Task',
-        'Task': 'Sum-Rate',
+        'Task': 'Sum',
+        'Fullname': 'Sum-Rate',
         'Train': int(5e5),
         'Valid': 5000}
     TARGETTASK = {'Type': 'Target-Task',
         'Task': 'Harmonic',
+        'Fullname': 'Harmonic-Rate',
         'Train': int(1000),
         'Valid': 2000}
 else:

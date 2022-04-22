@@ -38,6 +38,22 @@ class Neural_Net(nn.Module):
         sinrs = sinrs_numerators / (sinrs_denominators * SINR_GAP)
         return torch.log(1+sinrs) # Un-normalized for better scaled gradients
 
+    def compute_objective(self, rates, task):
+        n_layouts = rates.size(dim=0)
+        if task == 'Sum':
+            obj = torch.sum(rates, dim=1)
+        elif task == 'Min':
+            obj, _ = torch.min(rates, dim=1)
+        elif task == 'Jain':
+            obj = torch.pow(torch.sum(rates, dim=1), 2) / (torch.sum(torch.pow(rates, 2), dim=1)*N_LINKS)
+        elif task == 'Harmonic':
+            obj = N_LINKS / torch.sum(1/rates, dim=1)
+        else:
+            print(f"{task} objective computation unimplemented yet!")
+            exit(1)
+        assert obj.size() == (n_layouts,)
+        return obj
+
     def load_model(self):
         if os.path.exists(self.model_path):
             if not torch.cuda.is_available():
@@ -76,11 +92,14 @@ class Neural_Net(nn.Module):
         optimizer_module.append(nn.Sigmoid())
         return optimizer_module
 
+    def _construct_model_path(self, model_type):
+        return os.path.join(self.base_dir, f"{SOURCETASK['Task']}-{TARGETTASK['Task']}", f"{model_type}_{SETTING_STRING}.ckpt")
+
 class Regular_Net(Neural_Net):
     def __init__(self):
         super().__init__()
         self.model_type = "Regular"
-        self.model_path = os.path.join(self.base_dir, "{}_{}.ckpt".format(self.model_type, SETTING_STRING))
+        self.model_path = self._construct_model_path(self.model_type)
         self.sourceTask_feature_module = self.construct_feature_module()
         self.sourceTask_optimizer_module = self.construct_optimizer_module()
         self.targetTask_feature_module = self.construct_feature_module()
@@ -94,8 +113,8 @@ class Regular_Net(Neural_Net):
         for lyr  in self.sourceTask_optimizer_module:
             x = lyr(x)
         rates = self.compute_rates(x, g)
-        # source task: sum rate optimization
-        obj = torch.mean(torch.sum(rates, dim=1))
+        obj = self.compute_objective(rates, SOURCETASK['Task'])
+        obj = torch.mean(obj)
         return x, obj
 
     def targetTask_powerControl(self, g):
@@ -105,8 +124,7 @@ class Regular_Net(Neural_Net):
         for lyr  in self.targetTask_optimizer_module:
             x = lyr(x)
         rates = self.compute_rates(x, g)
-        # target task: min rate optimization
-        obj, _ = torch.min(rates, dim=1)
+        obj = self.compute_objective(rates, TARGETTASK['Task'])
         obj = torch.mean(obj)
         return x, obj
 
@@ -115,7 +133,7 @@ class Transfer_Net(Neural_Net):
     def __init__(self):
         super().__init__()
         self.model_type = "Transfer"
-        self.model_path = os.path.join(self.base_dir, "{}_{}.ckpt".format(self.model_type, SETTING_STRING))
+        self.model_path = self._construct_model_path(self.model_type)
         self.feature_module = self.construct_feature_module()
         self.sourceTask_optimizer_module = self.construct_optimizer_module()
         self.targetTask_optimizer_module = self.construct_optimizer_module()
@@ -128,8 +146,8 @@ class Transfer_Net(Neural_Net):
         for lyr  in self.sourceTask_optimizer_module:
             x = lyr(x)
         rates = self.compute_rates(x, g)
-        # source task: sum rate optimization
-        obj = torch.mean(torch.sum(rates, dim=1))
+        obj = self.compute_objective(rates, SOURCETASK['Task'])
+        obj = torch.mean(obj)
         return x, obj
 
     # freeze parameters for transfer learning
@@ -146,8 +164,7 @@ class Transfer_Net(Neural_Net):
         for lyr  in self.targetTask_optimizer_module:
             x = lyr(x)
         rates = self.compute_rates(x, g)
-        # target task: min rate optimization
-        obj, _ = torch.min(rates, dim=1)
+        obj = self.compute_objective(rates, TARGETTASK['Task'])
         obj = torch.mean(obj)
         return x, obj
 
@@ -155,7 +172,7 @@ class Autoencoder_Transfer_Net(Neural_Net):
     def __init__(self):
         super().__init__()
         self.model_type = "Autoencoder_Transfer"
-        self.model_path = os.path.join(self.base_dir, "{}_{}.ckpt".format(self.model_type, SETTING_STRING))
+        self.model_path = self._construct_model_path(self.model_type)
         self.feature_module = self.construct_feature_module()
         self.decoder_module = self.construct_decoder_module()
         self.sourceTask_optimizer_module = self.construct_optimizer_module()
@@ -185,8 +202,8 @@ class Autoencoder_Transfer_Net(Neural_Net):
             features = lyr(features)
         pc = features
         rates = self.compute_rates(pc, g)
-        # source task: sum rate optimization
-        obj = torch.mean(torch.sum(rates, dim=1))
+        obj = self.compute_objective(rates, SOURCETASK['Task'])
+        obj = torch.mean(obj)
         return pc, obj, self.reconstruct_loss_func(inputs, inputs_reconstructed)
     
     # freeze parameters for transfer learning
@@ -203,8 +220,7 @@ class Autoencoder_Transfer_Net(Neural_Net):
         for lyr in self.targetTask_optimizer_module:
             x = lyr(x)
         rates = self.compute_rates(x, g)
-        # target task: min rate optimization
-        obj, _ = torch.min(rates, dim=1)
+        obj = self.compute_objective(rates, TARGETTASK['Task'])
         obj = torch.mean(obj)
         return x, obj
 

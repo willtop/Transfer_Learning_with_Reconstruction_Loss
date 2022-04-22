@@ -20,13 +20,13 @@ if(__name__ =='__main__'):
     for task in [SOURCETASK, TARGETTASK]:
         print(f"Evaluating {task['Type']}: {task['Task']}...")
         power_controls, plot_colors, plot_linestyles = {}, {}, {}
-        if task['Task'] == "Sum-Rate":
+        if task['Task'] == "Sum":
             optimal_benchmark = "FP"
             # Fractional Programming
             power_controls["FP"] = FP_power_control(g)
             plot_colors["FP"] = 'b'
             plot_linestyles["FP"] = '--' 
-        elif task['Task'] == "Min-Rate":
+        elif task['Task'] == "Min":
             optimal_benchmark = "GP"
             # Geometric Programming
             power_controls["GP"] = GP_power_control()
@@ -74,11 +74,11 @@ if(__name__ =='__main__'):
             rates = compute_rates(compute_SINRs(power_percentages, g))
             assert np.shape(rates) == (N_TEST_SAMPLES, N_LINKS)
             rates_all[method_key] = rates
-            if task['Task'] == 'Sum-Rate':
+            if task['Task'] == 'Sum':
                 objectives[method_key] = np.sum(rates, axis=1)
-            elif task['Task'] == 'Min-Rate':
+            elif task['Task'] == 'Min':
                 objectives[method_key] = np.min(rates, axis=1)
-            elif task['Task'] == 'Jain-Fairness':
+            elif task['Task'] == 'Jain':
                 objectives[method_key] = np.power(np.sum(rates, axis=1), 2) / (np.sum(np.power(rates, 2), axis=1)*N_LINKS)
             elif task['Task'] == 'Harmonic':
                 objectives[method_key] = N_LINKS / np.sum(1/rates, axis=1)
@@ -87,7 +87,7 @@ if(__name__ =='__main__'):
                 exit(1)
             assert np.shape(objectives[method_key]) == (N_TEST_SAMPLES, )
         for method_key, objective in objectives.items():
-            if task['Task'] == "Jain-Fairness":
+            if task['Task'] == "Jain":
                 print("[{}]: {:.3f}".format(method_key, np.mean(objective)), end="")
             else:
                 print("[{}]: {:.3f}Mbps".format(method_key, np.mean(objective)/1e6), end="")
@@ -107,8 +107,8 @@ if(__name__ =='__main__'):
             upperbound_plot = max(upperbound_plot, np.percentile(val,q=90, interpolation="lower"))
 
         fig = plt.figure()
-        plt.xlabel(f"{task['Type']} {task['Task']} (Mbps)", fontsize=20)
-        plt.ylabel(f"Cumulative Distribution of {task['Task']} Values", fontsize=20)
+        plt.xlabel(f"{task['Type']} {task['Fullname']} (Mbps)", fontsize=20)
+        plt.ylabel(f"Cumulative Distribution of {task['Fullname']} Values", fontsize=20)
         plt.xticks(fontsize=21)
         plt.yticks(np.linspace(start=0, stop=1, num=5), ["{}%".format(int(i*100)) for i in np.linspace(start=0, stop=1, num=5)], fontsize=21)
         plt.grid(linestyle="dotted")
@@ -122,11 +122,12 @@ if(__name__ =='__main__'):
 
         # Visualize power control solutions and achieved rates for selected layouts
         if (task['Type']=="Source-Task" and VISUALIZE_SOURCETASK) or (task['Type']=="Target-Task" and VISUALIZE_TARGETTASK):
-            methods_plotted = [optimal_benchmark, "Regular Learning", "Transfer Learning", "Autoencoder Transfer Learning", "Random Power"]
+            # If optimal benchmark is regular learning, then put a set to remove duplicate
+            methods_plotted = set([optimal_benchmark, "Regular Learning", "Transfer Learning", "Autoencoder Transfer Learning", "Random Power"])
             rand_idxes = np.random.randint(N_TEST_SAMPLES, size=3)    
             for id in rand_idxes:
                 fig, axs = plt.subplots(3,1)
-                fig.suptitle(f"{task['Task']} Test Layout #{id}")
+                fig.suptitle(f"{task['Fullname']} Test Layout #{id}")
                 axs = axs.flatten()
                 # plot channels
                 axs[0].set_title("Channels")
