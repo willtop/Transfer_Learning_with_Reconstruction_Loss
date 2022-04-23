@@ -39,7 +39,7 @@ SINR_GAP = np.power(10, SINR_GAP_dB/10)
 ANTENNA_GAIN_DB = 6
 
 # Transfer Configuration on Task Specifications
-TRANSFER_CONFIGURE = 'II'
+TRANSFER_CONFIGURE = 'III'
 
 if TRANSFER_CONFIGURE == 'I':
     SOURCETASK = {'Type': 'Source-Task',
