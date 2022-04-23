@@ -154,7 +154,7 @@ if(__name__=="__main__"):
     """
     N_EPOCHES = 10000
     MINIBATCH_SIZE = 100
-    LEARNING_RATE_TARGETTASK = 5e-5
+    LEARNING_RATE_TARGETTASK = 1e-4
     print("[Target Task] Loading data...")
     g = np.load(f"Data/g_targetTask_{SETTING_STRING}.npy")
     assert np.shape(g)[0] == TARGETTASK['Train'] + TARGETTASK['Valid']
