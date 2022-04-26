@@ -69,28 +69,40 @@ if(__name__ =='__main__'):
         print("\n")
 
         print(f"{task['Type']} {task['Task']} Performances: ")
-        rates_all, objectives = {}, {}
+        sinrs_all, rates_all, objectives = {}, {}, {}
         for method_key, power_percentages in power_controls.items():
-            rates = compute_rates(compute_SINRs(power_percentages, g))
-            assert np.shape(rates) == (N_TEST_SAMPLES, N_LINKS)
+            sinrs = compute_SINRs(power_percentages, g)
+            rates = compute_rates(sinrs)
+            assert np.shape(sinrs) == np.shape(rates) == (N_TEST_SAMPLES, N_LINKS)
+            sinrs_all[method_key] = sinrs
             rates_all[method_key] = rates
             if task['Task'] == 'Sum':
                 objectives[method_key] = np.sum(rates, axis=1)
             elif task['Task'] == 'Min':
                 objectives[method_key] = np.min(rates, axis=1)
-            elif task['Task'] == 'Jain':
-                objectives[method_key] = np.power(np.sum(rates, axis=1), 2) / (np.sum(np.power(rates, 2), axis=1)*N_LINKS)
             elif task['Task'] == 'Harmonic':
-                objectives[method_key] = N_LINKS / np.sum(1/rates, axis=1)
+                objectives[method_key] = N_LINKS / np.sum(1/(rates/1e6), axis=1)
             else:
                 print(f"Invalid task type: {task['Task']}! Exiting ...")
                 exit(1)
             assert np.shape(objectives[method_key]) == (N_TEST_SAMPLES, )
+        
+        # Ensure SINR mostly at positive decibels
+        print("Percentages of layout with worst link SINR above 0dB")
+        for method_key, sinrs in sinrs_all.items():
+            pert = np.mean(convert_SINRs_to_dB(np.min(sinrs,axis=1))>0)*100
+            print("[{}] {:.1f}%;".format(method_key, pert)) 
+        print("\n")
+
         for method_key, objective in objectives.items():
-            if task['Task'] == "Jain":
-                print("[{}]: {:.3f}".format(method_key, np.mean(objective)), end="")
+            # Different statistics monitored for different tasks
+            if task['Task'] in ["Sum", "Min"]:
+                print("[{}]: {:.3f}Mbps;".format(method_key, np.mean(objective)/1e6), end="")
+            elif task['Task'] == "Harmonic":
+                print("[{}]: {:.3f}Mbps;".format(method_key, np.mean(objective)), end="")
             else:
-                print("[{}]: {:.3f}Mbps".format(method_key, np.mean(objective)/1e6), end="")
+                print(f"Invalid task {task['Task']}! Exiting...")
+                exit(1)
         print("\n")
         for method_key, objective in objectives.items():
             if method_key == optimal_benchmark:
@@ -135,12 +147,12 @@ if(__name__ =='__main__'):
                 # plot power allocations
                 axs[1].set_title("Power Allocations")
                 for method_key in methods_plotted:
-                    axs[1].plot(power_controls[method_key][id], label=method_key)
+                    axs[1].plot(np.arange(1, N_LINKS+1), power_controls[method_key][id], label=method_key)
                 axs[1].legend()
                 # plot achieved rates
                 axs[2].set_title("Link Rate")
                 for method_key in methods_plotted:
-                    axs[2].plot(rates_all[method_key][id], label=method_key)
+                    axs[2].plot(np.arange(1, N_LINKS+1), rates_all[method_key][id], label=method_key)
                 axs[2].legend()
                 plt.show()
     print("Evaluation Finished Successfully!")

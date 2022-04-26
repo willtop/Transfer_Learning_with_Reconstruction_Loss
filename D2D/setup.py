@@ -9,7 +9,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device: ", DEVICE)
 
 # Transfer Configuration on Task Specifications
-TRANSFER_CONFIGURE = 'III'
+TRANSFER_CONFIGURE = 'II'
 
 if TRANSFER_CONFIGURE == 'I':
     SOURCETASK = {'Type': 'Source-Task',
@@ -23,30 +23,24 @@ if TRANSFER_CONFIGURE == 'I':
         'Train': int(1000),
         'Valid': 2000} 
     LAYOUT_SETTING = 'A'
+    COMBINE_WEIGHT_RECONSTRUCT = 4
+    LEARNING_RATE_TARGETTASK = 1e-4
+    N_EPOCHES_TARGETTASK = 10000
 elif TRANSFER_CONFIGURE == 'II':
     SOURCETASK = {'Type': 'Source-Task',
         'Task': 'Sum',
         'Fullname': 'Sum-Rate',
-        'Train': int(5e5),
-        'Valid': 5000}
-    TARGETTASK = {'Type': 'Target-Task',
-        'Task': 'Jain',
-        'Fullname': 'Jain-Fairness',
-        'Train': int(1000),
-        'Valid': 2000}
-    LAYOUT_SETTING = 'A'
-elif TRANSFER_CONFIGURE == 'III':
-    SOURCETASK = {'Type': 'Source-Task',
-        'Task': 'Sum',
-        'Fullname': 'Sum-Rate',
-        'Train': int(5e5),
+        'Train': int(1.5e6),
         'Valid': 5000}
     TARGETTASK = {'Type': 'Target-Task',
         'Task': 'Harmonic',
         'Fullname': 'Harmonic-Rate',
-        'Train': int(1000),
+        'Train': int(2000),
         'Valid': 2000}
     LAYOUT_SETTING = 'B'
+    COMBINE_WEIGHT_RECONSTRUCT = 4
+    LEARNING_RATE_TARGETTASK = 3e-5
+    N_EPOCHES_TARGETTASK = 5000
 else:
     print(f"Invalid Transfer Configuration Option: {TRANSFER_CONFIGURE}! Exiting...")
     exit(1)
@@ -66,9 +60,9 @@ if LAYOUT_SETTING=='A':
     LONGEST_DIRECTLINK = 30
 elif LAYOUT_SETTING=='B':
     N_LINKS = 15
-    FIELD_LENGTH = 200
-    SHORTEST_DIRECTLINK = 20
-    LONGEST_DIRECTLINK = 30
+    FIELD_LENGTH = 250
+    SHORTEST_DIRECTLINK = 10
+    LONGEST_DIRECTLINK = 35
 else:
     print(f"Wrong Layout Setting {LAYOUT_SETTING}!")
     exit(1)

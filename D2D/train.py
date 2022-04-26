@@ -61,7 +61,6 @@ def shuffle_divide_batches(inputs, n_batches):
     return inputs_batches
 
 EARLY_STOPPING = True
-COMBINE_WEIGHT_RECONSTRUCT = 4
 
 if(__name__=="__main__"):
     parser = argparse.ArgumentParser(description="main script argument parser")
@@ -77,7 +76,7 @@ if(__name__=="__main__"):
     """ 
     Source-Task Training 
     """
-    N_EPOCHES = 100
+    N_EPOCHES_SOURCETASK = 150
     MINIBATCH_SIZE = 2000
     LEARNING_RATE_SOURCETASK = 1e-3
     print("[Source Task] Loading data...")
@@ -92,7 +91,7 @@ if(__name__=="__main__"):
             optim.Adam(regular_net.parameters(), lr=LEARNING_RATE_SOURCETASK), optim.Adam(transfer_net.parameters(), lr=LEARNING_RATE_SOURCETASK), optim.Adam(ae_transfer_net.parameters(), lr=LEARNING_RATE_SOURCETASK)
     regular_loss_min, transfer_loss_min, ae_transfer_loss_combined_min = np.inf, np.inf, np.inf
     train_loss_eps, valid_loss_eps = [], []
-    for i in trange(1, N_EPOCHES+1):
+    for i in trange(1, N_EPOCHES_SOURCETASK+1):
         regular_loss_ep, transfer_loss_ep, ae_transfer_loss_ep, ae_transfer_loss_combined_ep = 0, 0, 0, 0
         g_batches = shuffle_divide_batches(g_train, n_minibatches)
         for j in range(n_minibatches):
@@ -152,9 +151,7 @@ if(__name__=="__main__"):
     """ 
     Target Task Training
     """
-    N_EPOCHES = 10000
     MINIBATCH_SIZE = 100
-    LEARNING_RATE_TARGETTASK = 1e-4
     print("[Target Task] Loading data...")
     g = np.load(f"Data/g_targetTask_{SETTING_STRING}.npy")
     assert np.shape(g)[0] == TARGETTASK['Train'] + TARGETTASK['Valid']
@@ -175,7 +172,7 @@ if(__name__=="__main__"):
             optim.Adam(filter(lambda para: para.requires_grad, ae_transfer_net.parameters()), lr=LEARNING_RATE_TARGETTASK)
     regular_loss_min, transfer_loss_min, ae_transfer_loss_min = np.inf, np.inf, np.inf
     train_loss_eps, valid_loss_eps = [], []
-    for i in trange(1, N_EPOCHES+1):
+    for i in trange(1, N_EPOCHES_TARGETTASK+1):
         regular_loss_ep, transfer_loss_ep, ae_transfer_loss_ep = 0, 0, 0
         g_batches = shuffle_divide_batches(g_train, n_minibatches)
         for j in range(n_minibatches):

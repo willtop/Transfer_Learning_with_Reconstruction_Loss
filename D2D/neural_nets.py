@@ -44,8 +44,6 @@ class Neural_Net(nn.Module):
             obj = torch.sum(rates, dim=1)
         elif task == 'Min':
             obj, _ = torch.min(rates, dim=1)
-        elif task == 'Jain':
-            obj = torch.pow(torch.sum(rates, dim=1), 2) / (torch.sum(torch.pow(rates, 2), dim=1)*N_LINKS)
         elif task == 'Harmonic':
             obj = N_LINKS / torch.sum(1/rates, dim=1)
         else:

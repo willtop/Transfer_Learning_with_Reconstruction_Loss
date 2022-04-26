@@ -94,6 +94,9 @@ def compute_SINRs(pc, channels):
 def compute_rates(sinrs):
     return BANDWIDTH * np.log2(1 + sinrs) 
 
+def convert_SINRs_to_dB(sinrs):
+    return 10*np.log10(sinrs)
+
 # Parallel computation over multiple layouts
 def FP_power_control(g):
     n_layouts = np.shape(g)[0]
@@ -143,8 +146,8 @@ def GP_power_control():
     print(f"<<<<<<<<<<<<<<<<<<<GP SINR ERRORS AVG on TEST SET>>>>>>>>>>>>>>>>>>>")
     print(np.mean((np.max(sinrs, axis=1)-np.min(sinrs, axis=1))/np.min(sinrs, axis=1)))
     print("<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>")
-    print("[GP power control on {}] avg allocation power: {}%; avg min sinr among links: {:.3f}dB".format(
-            SETTING_STRING, np.mean(pc)*100, np.mean(10*np.log10(np.min(sinrs,axis=1)))))
+    print("[GP power control on {}] avg allocation power: {}%; avg min sinr among links: {:.3f}dB; {:.1f}% layouts with min sinr above 0dB".format(
+            SETTING_STRING, np.mean(pc)*100, np.mean(convert_SINRs_to_dB(np.min(sinrs,axis=1))), np.mean(convert_SINRs_to_dB(np.min(sinrs,axis=1))>0)*100))
     return pc
 
 def visualize_importance_weights(weights_sourceTask, weights_targetTask):
