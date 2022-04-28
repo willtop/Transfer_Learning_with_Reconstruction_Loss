@@ -76,7 +76,7 @@ if(__name__=="__main__"):
     """ 
     Source-Task Training 
     """
-    N_EPOCHES_SOURCETASK = 300
+    N_EPOCHES_SOURCETASK = 150
     MINIBATCH_SIZE = 2000
     LEARNING_RATE_SOURCETASK = 1e-3
     print("[Source Task] Loading data...")

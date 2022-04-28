@@ -53,9 +53,9 @@ elif TRANSFER_CONFIGURE == 'III':
         'Train': int(1000),
         'Valid': 2000} 
     LAYOUT_SETTING = 'A'
-    COMBINE_WEIGHT_RECONSTRUCT = 4
-    LEARNING_RATE_TARGETTASK = 1e-4
-    N_EPOCHES_TARGETTASK = 10000
+    COMBINE_WEIGHT_RECONSTRUCT = 0.1
+    LEARNING_RATE_TARGETTASK = 2e-5
+    N_EPOCHES_TARGETTASK = 30000
 else:
     print(f"Invalid Transfer Configuration Option: {TRANSFER_CONFIGURE}! Exiting...")
     exit(1)
