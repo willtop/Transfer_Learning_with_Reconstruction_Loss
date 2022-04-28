@@ -9,7 +9,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device: ", DEVICE)
 
 # Transfer Configuration on Task Specifications
-TRANSFER_CONFIGURE = 'II'
+TRANSFER_CONFIGURE = 'III'
 
 if TRANSFER_CONFIGURE == 'I':
     SOURCETASK = {'Type': 'Source-Task',
@@ -30,17 +30,32 @@ elif TRANSFER_CONFIGURE == 'II':
     SOURCETASK = {'Type': 'Source-Task',
         'Task': 'Sum',
         'Fullname': 'Sum-Rate',
-        'Train': int(1.5e6),
+        'Train': int(5e5),
         'Valid': 5000}
     TARGETTASK = {'Type': 'Target-Task',
         'Task': 'Harmonic',
-        'Fullname': 'Harmonic-Rate',
-        'Train': int(2000),
+        'Fullname': 'Harmonic-Mean-Rate',
+        'Train': int(1000),
         'Valid': 2000}
-    LAYOUT_SETTING = 'B'
+    LAYOUT_SETTING = 'A'
     COMBINE_WEIGHT_RECONSTRUCT = 4
-    LEARNING_RATE_TARGETTASK = 3e-5
-    N_EPOCHES_TARGETTASK = 5000
+    LEARNING_RATE_TARGETTASK = 1e-5
+    N_EPOCHES_TARGETTASK = 15000
+elif TRANSFER_CONFIGURE == 'III':
+    SOURCETASK = {'Type': 'Source-Task',
+        'Task': 'Harmonic',
+        'Fullname': 'Harmonic-Mean-Rate',
+        'Train': int(5e5),
+        'Valid': 5000}
+    TARGETTASK = {'Type': 'Target-Task',
+        'Task': 'Min',
+        'Fullname': 'Min-Rate',
+        'Train': int(1000),
+        'Valid': 2000} 
+    LAYOUT_SETTING = 'A'
+    COMBINE_WEIGHT_RECONSTRUCT = 4
+    LEARNING_RATE_TARGETTASK = 1e-4
+    N_EPOCHES_TARGETTASK = 10000
 else:
     print(f"Invalid Transfer Configuration Option: {TRANSFER_CONFIGURE}! Exiting...")
     exit(1)
