@@ -3,7 +3,7 @@ clear
 clc
 
 % D2D Environment settings
-SETTING = 'B';
+SETTING = 'A';
 if SETTING == 'A'
     N_LINKS = 10;
     FIELD_LENGTH = 150;
