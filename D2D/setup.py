@@ -9,7 +9,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device: ", DEVICE)
 
 # Transfer Configuration on Task Specifications
-TRANSFER_CONFIGURE = 'III'
+TRANSFER_CONFIGURE = 'I'
 
 if TRANSFER_CONFIGURE == 'I':
     SOURCETASK = {'Type': 'Source-Task',
@@ -55,6 +55,21 @@ elif TRANSFER_CONFIGURE == 'III':
     LAYOUT_SETTING = 'A'
     COMBINE_WEIGHT_RECONSTRUCT = 0.1
     LEARNING_RATE_TARGETTASK = 2e-5
+    N_EPOCHES_TARGETTASK = 30000
+elif TRANSFER_CONFIGURE == 'IV':
+    SOURCETASK = {'Type': 'Source-Task',
+        'Task': 'Harmonic',
+        'Fullname': 'Harmonic-Mean-Rate',
+        'Train': int(5e5),
+        'Valid': 5000}
+    TARGETTASK = {'Type': 'Target-Task',
+        'Task': 'Sum',
+        'Fullname': 'Sum-Rate',
+        'Train': int(1000),
+        'Valid': 2000} 
+    LAYOUT_SETTING = 'A'
+    COMBINE_WEIGHT_RECONSTRUCT = 0.5
+    LEARNING_RATE_TARGETTASK = 1e-5
     N_EPOCHES_TARGETTASK = 30000
 else:
     print(f"Invalid Transfer Configuration Option: {TRANSFER_CONFIGURE}! Exiting...")
