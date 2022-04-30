@@ -76,9 +76,8 @@ if(__name__=="__main__"):
     """ 
     Source-Task Training 
     """
-    N_EPOCHES_SOURCETASK = 300
+    print(f"<<<<<<<<<<<<<<<<<<<<<<<[{SOURCETASK['Fullname']}]->[{TARGETTASK['Fullname']}]>>>>>>>>>>>>>>>>>>>>>>")
     MINIBATCH_SIZE = 2000
-    LEARNING_RATE_SOURCETASK = 1e-3
     print("[Source Task] Loading data...")
     g = np.load(f"Data/g_sourceTask_{SETTING_STRING}.npy")
     assert np.shape(g)[0] == SOURCETASK['Train'] + SOURCETASK['Valid']
@@ -225,4 +224,4 @@ if(__name__=="__main__"):
         np.save(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/train_losses_targetTask_{SETTING_STRING}.npy", np.array(train_loss_eps))
         np.save(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/valid_losses_targetTask_{SETTING_STRING}.npy", np.array(valid_loss_eps))
 
-    print(f"Training finished!")
+    print(f"[{SOURCETASK['Fullname']}]->[{TARGETTASK['Fullname']}] Training finished!")

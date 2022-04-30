@@ -9,7 +9,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device: ", DEVICE)
 
 # Transfer Configuration on Task Specifications
-TRANSFER_CONFIGURE = 'I'
+TRANSFER_CONFIGURE = 'III'
 
 if TRANSFER_CONFIGURE == 'I':
     SOURCETASK = {'Type': 'Source-Task',
@@ -21,11 +21,13 @@ if TRANSFER_CONFIGURE == 'I':
         'Task': 'Min',
         'Fullname': 'Min-Rate',
         'Train': int(1000),
-        'Valid': 2000} 
+        'Valid': 5000} 
     LAYOUT_SETTING = 'A'
-    COMBINE_WEIGHT_RECONSTRUCT = 4
+    COMBINE_WEIGHT_RECONSTRUCT = 3
+    LEARNING_RATE_SOURCETASK = 1e-3
+    N_EPOCHES_SOURCETASK = 300
     LEARNING_RATE_TARGETTASK = 1e-5
-    N_EPOCHES_TARGETTASK = 20000
+    N_EPOCHES_TARGETTASK = 10000
 elif TRANSFER_CONFIGURE == 'II':
     SOURCETASK = {'Type': 'Source-Task',
         'Task': 'Sum',
@@ -36,25 +38,29 @@ elif TRANSFER_CONFIGURE == 'II':
         'Task': 'Harmonic',
         'Fullname': 'Harmonic-Mean-Rate',
         'Train': int(1000),
-        'Valid': 2000}
+        'Valid': 5000}
     LAYOUT_SETTING = 'A'
     COMBINE_WEIGHT_RECONSTRUCT = 4
+    LEARNING_RATE_SOURCETASK = 1e-3
+    N_EPOCHES_SOURCETASK = 300
     LEARNING_RATE_TARGETTASK = 1e-5
     N_EPOCHES_TARGETTASK = 20000
 elif TRANSFER_CONFIGURE == 'III':
     SOURCETASK = {'Type': 'Source-Task',
         'Task': 'Harmonic',
         'Fullname': 'Harmonic-Mean-Rate',
-        'Train': int(5e5),
+        'Train': int(1e6),
         'Valid': 5000}
     TARGETTASK = {'Type': 'Target-Task',
         'Task': 'Min',
         'Fullname': 'Min-Rate',
         'Train': int(1000),
-        'Valid': 2000} 
+        'Valid': 5000} 
     LAYOUT_SETTING = 'A'
-    COMBINE_WEIGHT_RECONSTRUCT = 0.1
-    LEARNING_RATE_TARGETTASK = 2e-5
+    COMBINE_WEIGHT_RECONSTRUCT = 1
+    LEARNING_RATE_SOURCETASK = 5e-5
+    N_EPOCHES_SOURCETASK = 100
+    LEARNING_RATE_TARGETTASK = 1e-5
     N_EPOCHES_TARGETTASK = 30000
 elif TRANSFER_CONFIGURE == 'IV':
     SOURCETASK = {'Type': 'Source-Task',
@@ -66,9 +72,11 @@ elif TRANSFER_CONFIGURE == 'IV':
         'Task': 'Sum',
         'Fullname': 'Sum-Rate',
         'Train': int(1000),
-        'Valid': 2000} 
+        'Valid': 5000} 
     LAYOUT_SETTING = 'A'
     COMBINE_WEIGHT_RECONSTRUCT = 0.5
+    LEARNING_RATE_SOURCETASK = 1e-3
+    N_EPOCHES_SOURCETASK = 300
     LEARNING_RATE_TARGETTASK = 1e-5
     N_EPOCHES_TARGETTASK = 30000
 else:
@@ -81,7 +89,7 @@ N_TEST_SAMPLES = 2000
 BANDWIDTH = 5e6
 CARRIER_FREQUENCY = 50e9 # 50GHz carrier frequency for millimeter wave
 WAVELENGTH = 2.998e8/CARRIER_FREQUENCY
-_NOISE_dBm_Hz = -150
+_NOISE_dBm_Hz = -145
 NOISE_POWER = np.power(10, ((_NOISE_dBm_Hz-30)/10)) * BANDWIDTH
 if LAYOUT_SETTING=='A':
     N_LINKS = 10
@@ -104,7 +112,7 @@ TX_POWER = np.power(10, (_TX_POWER_dBm - 30) / 10)
 SETTING_STRING = "N{}_L{}_{}-{}m".format(N_LINKS, FIELD_LENGTH, SHORTEST_DIRECTLINK, LONGEST_DIRECTLINK)
 SINR_GAP_dB = 0
 SINR_GAP = np.power(10, SINR_GAP_dB/10)
-ANTENNA_GAIN_DB = 6
+ANTENNA_GAIN_DB = 5
 
 
 # set random seed
