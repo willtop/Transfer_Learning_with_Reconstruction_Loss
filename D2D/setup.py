@@ -49,7 +49,7 @@ elif TRANSFER_CONFIGURE == 'III':
     SOURCETASK = {'Type': 'Source-Task',
         'Task': 'Harmonic',
         'Fullname': 'Harmonic-Mean-Rate',
-        'Train': int(1e6),
+        'Train': int(5e5),
         'Valid': 5000}
     TARGETTASK = {'Type': 'Target-Task',
         'Task': 'Min',
@@ -112,7 +112,7 @@ TX_POWER = np.power(10, (_TX_POWER_dBm - 30) / 10)
 SETTING_STRING = "N{}_L{}_{}-{}m".format(N_LINKS, FIELD_LENGTH, SHORTEST_DIRECTLINK, LONGEST_DIRECTLINK)
 SINR_GAP_dB = 0
 SINR_GAP = np.power(10, SINR_GAP_dB/10)
-ANTENNA_GAIN_DB = 5
+ANTENNA_GAIN_DB = 6
 
 
 # set random seed
