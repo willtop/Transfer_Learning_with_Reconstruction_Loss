@@ -5,7 +5,7 @@ from scipy.io import savemat
 from utils import *
 from setup import *
 
-CHECK_SETTING = False
+CHECK_SETTING = True
 GENERATE_CHANNELS_SOURCETASK = False
 GENERATE_CHANNELS_TARGETTASK = False
 GENERATE_CHANNELS_TEST = True
