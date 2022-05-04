@@ -5,9 +5,9 @@ from scipy.io import savemat
 from utils import *
 from setup import *
 
-CHECK_SETTING = True
-GENERATE_CHANNELS_SOURCETASK = False
-GENERATE_CHANNELS_TARGETTASK = False
+CHECK_SETTING = False
+GENERATE_CHANNELS_SOURCETASK = True
+GENERATE_CHANNELS_TARGETTASK = True
 GENERATE_CHANNELS_TEST = True
 
 if __name__ == '__main__':

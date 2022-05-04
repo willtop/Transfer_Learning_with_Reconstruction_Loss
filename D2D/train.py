@@ -150,7 +150,7 @@ if(__name__=="__main__"):
     """ 
     Target Task Training
     """
-    MINIBATCH_SIZE = 100
+    MINIBATCH_SIZE = 50
     print("[Target Task] Loading data...")
     g = np.load(f"Data/g_targetTask_{SETTING_STRING}.npy")
     assert np.shape(g)[0] == TARGETTASK['Train'] + TARGETTASK['Valid']

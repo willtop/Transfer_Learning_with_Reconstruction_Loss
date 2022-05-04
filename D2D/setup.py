@@ -71,14 +71,14 @@ elif TRANSFER_CONFIGURE == 'IV':
     TARGETTASK = {'Type': 'Target-Task',
         'Task': 'Sum',
         'Fullname': 'Sum-Rate',
-        'Train': int(1000),
+        'Train': int(2500),
         'Valid': 5000} 
     LAYOUT_SETTING = 'A'
-    COMBINE_WEIGHT_RECONSTRUCT = 2
+    COMBINE_WEIGHT_RECONSTRUCT = 0.5
     LEARNING_RATE_SOURCETASK = 1e-3
     N_EPOCHES_SOURCETASK = 150
-    LEARNING_RATE_TARGETTASK = 1e-5
-    N_EPOCHES_TARGETTASK = 60000
+    LEARNING_RATE_TARGETTASK = 2e-5
+    N_EPOCHES_TARGETTASK = 15000
 else:
     print(f"Invalid Transfer Configuration Option: {TRANSFER_CONFIGURE}! Exiting...")
     exit(1)
@@ -94,8 +94,8 @@ NOISE_POWER = np.power(10, ((_NOISE_dBm_Hz-30)/10)) * BANDWIDTH
 if LAYOUT_SETTING=='A':
     N_LINKS = 10
     FIELD_LENGTH = 150
-    SHORTEST_DIRECTLINK = 10
-    LONGEST_DIRECTLINK = 30
+    SHORTEST_DIRECTLINK = 15
+    LONGEST_DIRECTLINK = 25
 elif LAYOUT_SETTING=='B':
     N_LINKS = 15
     FIELD_LENGTH = 250
@@ -112,7 +112,7 @@ TX_POWER = np.power(10, (_TX_POWER_dBm - 30) / 10)
 SETTING_STRING = "N{}_L{}_{}-{}m".format(N_LINKS, FIELD_LENGTH, SHORTEST_DIRECTLINK, LONGEST_DIRECTLINK)
 SINR_GAP_dB = 0
 SINR_GAP = np.power(10, SINR_GAP_dB/10)
-ANTENNA_GAIN_DB = 6
+ANTENNA_GAIN_DB = 5
 
 
 # set random seed
