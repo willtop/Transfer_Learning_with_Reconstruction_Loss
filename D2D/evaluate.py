@@ -39,20 +39,20 @@ if(__name__ =='__main__'):
             pc, _ = regular_net.sourceTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
             power_controls["Regular Learning"] = pc.detach().cpu().numpy()
             pc, _ = transfer_net.sourceTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
-            power_controls["Transfer Learning"] = pc.detach().cpu().numpy()
+            power_controls["Conventional Transfer Learning"] = pc.detach().cpu().numpy()
             pc, _, _ = ae_transfer_net.sourceTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
             power_controls["Autoencoder Transfer Learning"] = pc.detach().cpu().numpy()
         else:
             pc, _ = regular_net.targetTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
             power_controls["Regular Learning"] = pc.detach().cpu().numpy()
             pc, _ = transfer_net.targetTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
-            power_controls["Transfer Learning"] = pc.detach().cpu().numpy()
+            power_controls["Conventional Transfer Learning"] = pc.detach().cpu().numpy()
             pc, _ = ae_transfer_net.targetTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
             power_controls["Autoencoder Transfer Learning"] = pc.detach().cpu().numpy()
         plot_colors["Regular Learning"] = 'm'
         plot_linestyles["Regular Learning"] = '--'
-        plot_colors["Transfer Learning"] = 'g'
-        plot_linestyles["Transfer Learning"] = '-.'
+        plot_colors["Conventional Transfer Learning"] = 'g'
+        plot_linestyles["Conventional Transfer Learning"] = '-.'
         plot_colors["Autoencoder Transfer Learning"] = 'r'
         plot_linestyles["Autoencoder Transfer Learning"] = '-'
         # Trivial Benchmarks
@@ -135,7 +135,7 @@ if(__name__ =='__main__'):
         # Visualize power control solutions and achieved rates for selected layouts
         if (task['Type']=="Source-Task" and VISUALIZE_SOURCETASK) or (task['Type']=="Target-Task" and VISUALIZE_TARGETTASK):
             # If optimal benchmark is regular learning, then put a set to remove duplicate
-            methods_plotted = set([optimal_benchmark, "Regular Learning", "Transfer Learning", "Autoencoder Transfer Learning", "Random Power"])
+            methods_plotted = set([optimal_benchmark, "Regular Learning", "Conventional Transfer Learning", "Autoencoder Transfer Learning", "Random Power"])
             rand_idxes = np.random.randint(N_TEST_SAMPLES, size=3)    
             for id in rand_idxes:
                 fig, axs = plt.subplots(3,1)

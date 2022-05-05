@@ -9,7 +9,7 @@ DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device: ", DEVICE)
 
 # Transfer Configuration on Task Specifications
-TRANSFER_CONFIGURE = 'IV'
+TRANSFER_CONFIGURE = 'III'
 
 if TRANSFER_CONFIGURE == 'I':
     SOURCETASK = {'Type': 'Source-Task',
@@ -61,7 +61,7 @@ elif TRANSFER_CONFIGURE == 'III':
     LEARNING_RATE_SOURCETASK = 1e-3
     N_EPOCHES_SOURCETASK = 150
     LEARNING_RATE_TARGETTASK = 2e-5
-    N_EPOCHES_TARGETTASK = 30000
+    N_EPOCHES_TARGETTASK = 12000
 elif TRANSFER_CONFIGURE == 'IV':
     SOURCETASK = {'Type': 'Source-Task',
         'Task': 'Harmonic',
@@ -71,10 +71,10 @@ elif TRANSFER_CONFIGURE == 'IV':
     TARGETTASK = {'Type': 'Target-Task',
         'Task': 'Sum',
         'Fullname': 'Sum-Rate',
-        'Train': int(2500),
+        'Train': int(1000),
         'Valid': 5000} 
     LAYOUT_SETTING = 'A'
-    COMBINE_WEIGHT_RECONSTRUCT = 0.5
+    COMBINE_WEIGHT_RECONSTRUCT = 0.1
     LEARNING_RATE_SOURCETASK = 1e-3
     N_EPOCHES_SOURCETASK = 150
     LEARNING_RATE_TARGETTASK = 2e-5
