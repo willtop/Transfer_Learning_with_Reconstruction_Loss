@@ -49,7 +49,7 @@ elif TRANSFER_CONFIGURE == 'III':
     SOURCETASK = {'Type': 'Source-Task',
         'Task': 'Harmonic',
         'Fullname': 'Harmonic-Mean-Rate',
-        'Train': int(5e5),
+        'Train': int(1e6),
         'Valid': 5000}
     TARGETTASK = {'Type': 'Target-Task',
         'Task': 'Min',
@@ -57,16 +57,16 @@ elif TRANSFER_CONFIGURE == 'III':
         'Train': int(1000),
         'Valid': 5000} 
     LAYOUT_SETTING = 'A'
-    COMBINE_WEIGHT_RECONSTRUCT = 0.1
+    COMBINE_WEIGHT_RECONSTRUCT = 0.5
     LEARNING_RATE_SOURCETASK = 1e-3
     N_EPOCHES_SOURCETASK = 150
     LEARNING_RATE_TARGETTASK = 2e-5
-    N_EPOCHES_TARGETTASK = 12000
+    N_EPOCHES_TARGETTASK = 20000
 elif TRANSFER_CONFIGURE == 'IV':
     SOURCETASK = {'Type': 'Source-Task',
         'Task': 'Harmonic',
         'Fullname': 'Harmonic-Mean-Rate',
-        'Train': int(5e5),
+        'Train': int(1e6),
         'Valid': 5000}
     TARGETTASK = {'Type': 'Target-Task',
         'Task': 'Sum',
@@ -74,7 +74,7 @@ elif TRANSFER_CONFIGURE == 'IV':
         'Train': int(1000),
         'Valid': 5000} 
     LAYOUT_SETTING = 'A'
-    COMBINE_WEIGHT_RECONSTRUCT = 0.1
+    COMBINE_WEIGHT_RECONSTRUCT = 1
     LEARNING_RATE_SOURCETASK = 1e-3
     N_EPOCHES_SOURCETASK = 150
     LEARNING_RATE_TARGETTASK = 2e-5
@@ -94,7 +94,7 @@ NOISE_POWER = np.power(10, ((_NOISE_dBm_Hz-30)/10)) * BANDWIDTH
 if LAYOUT_SETTING=='A':
     N_LINKS = 10
     FIELD_LENGTH = 150
-    SHORTEST_DIRECTLINK = 15
+    SHORTEST_DIRECTLINK = 10
     LONGEST_DIRECTLINK = 25
 elif LAYOUT_SETTING=='B':
     N_LINKS = 15
