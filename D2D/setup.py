@@ -8,77 +8,43 @@ os.environ['KMP_DUPLICATE_LIB_OK']='True'
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device: ", DEVICE)
 
+# Source task trained agnositic to target task
+LAYOUT_SETTING = 'A'
+SourceTask_HarmonicMean = {'Type': 'Source-Task',
+        'Task': 'Harmonic',
+        'Fullname': 'Harmonic-Mean-Rate',
+        'Train': int(1e6),
+        'Valid': 5000,
+        'Minibatch_Size': 2000,
+        'Learning_Rate': 1e-3,
+        'Epochs': 100,
+        'Loss_Combine_Weight': 0.2}
+TargetTask_Min = {'Type': 'Target-Task',
+        'Task': 'Min',
+        'Fullname': 'Min-Rate',
+        'Train': 1000,
+        'Valid': 5000,
+        'Minibatch_Size': 100,
+        'Learning_Rate': 1e-5,
+        'Epochs': 15000}
+TargetTask_Sum = {'Type': 'Target-Task',
+        'Task': 'Sum',
+        'Fullname': 'Sum-Rate',
+        'Train': 1000,
+        'Valid': 5000,
+        'Minibatch_Size': 100,
+        'Learning_Rate': 1e-5,
+        'Epochs': 15000}
+
 # Transfer Configuration on Task Specifications
-TRANSFER_CONFIGURE = 'III'
+TRANSFER_CONFIGURE = 'I'
 
 if TRANSFER_CONFIGURE == 'I':
-    SOURCETASK = {'Type': 'Source-Task',
-        'Task': 'Sum',
-        'Fullname': 'Sum-Rate',
-        'Train': int(5e5),
-        'Valid': 5000}
-    TARGETTASK = {'Type': 'Target-Task',
-        'Task': 'Min',
-        'Fullname': 'Min-Rate',
-        'Train': int(1000),
-        'Valid': 5000} 
-    LAYOUT_SETTING = 'A'
-    COMBINE_WEIGHT_RECONSTRUCT = 3
-    LEARNING_RATE_SOURCETASK = 1e-3
-    N_EPOCHES_SOURCETASK = 300
-    LEARNING_RATE_TARGETTASK = 1e-5
-    N_EPOCHES_TARGETTASK = 10000
+    SOURCETASK = SourceTask_HarmonicMean
+    TARGETTASK = TargetTask_Min
 elif TRANSFER_CONFIGURE == 'II':
-    SOURCETASK = {'Type': 'Source-Task',
-        'Task': 'Sum',
-        'Fullname': 'Sum-Rate',
-        'Train': int(5e5),
-        'Valid': 5000}
-    TARGETTASK = {'Type': 'Target-Task',
-        'Task': 'Harmonic',
-        'Fullname': 'Harmonic-Mean-Rate',
-        'Train': int(1000),
-        'Valid': 5000}
-    LAYOUT_SETTING = 'A'
-    COMBINE_WEIGHT_RECONSTRUCT = 4
-    LEARNING_RATE_SOURCETASK = 1e-3
-    N_EPOCHES_SOURCETASK = 300
-    LEARNING_RATE_TARGETTASK = 1e-5
-    N_EPOCHES_TARGETTASK = 20000
-elif TRANSFER_CONFIGURE == 'III':
-    SOURCETASK = {'Type': 'Source-Task',
-        'Task': 'Harmonic',
-        'Fullname': 'Harmonic-Mean-Rate',
-        'Train': int(1e6),
-        'Valid': 5000}
-    TARGETTASK = {'Type': 'Target-Task',
-        'Task': 'Min',
-        'Fullname': 'Min-Rate',
-        'Train': int(1000),
-        'Valid': 5000} 
-    LAYOUT_SETTING = 'A'
-    COMBINE_WEIGHT_RECONSTRUCT = 0.5
-    LEARNING_RATE_SOURCETASK = 1e-3
-    N_EPOCHES_SOURCETASK = 150
-    LEARNING_RATE_TARGETTASK = 2e-5
-    N_EPOCHES_TARGETTASK = 20000
-elif TRANSFER_CONFIGURE == 'IV':
-    SOURCETASK = {'Type': 'Source-Task',
-        'Task': 'Harmonic',
-        'Fullname': 'Harmonic-Mean-Rate',
-        'Train': int(1e6),
-        'Valid': 5000}
-    TARGETTASK = {'Type': 'Target-Task',
-        'Task': 'Sum',
-        'Fullname': 'Sum-Rate',
-        'Train': int(1000),
-        'Valid': 5000} 
-    LAYOUT_SETTING = 'A'
-    COMBINE_WEIGHT_RECONSTRUCT = 1
-    LEARNING_RATE_SOURCETASK = 1e-3
-    N_EPOCHES_SOURCETASK = 150
-    LEARNING_RATE_TARGETTASK = 2e-5
-    N_EPOCHES_TARGETTASK = 15000
+    SOURCETASK = SourceTask_HarmonicMean
+    TARGETTASK = TargetTask_Sum
 else:
     print(f"Invalid Transfer Configuration Option: {TRANSFER_CONFIGURE}! Exiting...")
     exit(1)
@@ -94,8 +60,8 @@ NOISE_POWER = np.power(10, ((_NOISE_dBm_Hz-30)/10)) * BANDWIDTH
 if LAYOUT_SETTING=='A':
     N_LINKS = 10
     FIELD_LENGTH = 150
-    SHORTEST_DIRECTLINK = 10
-    LONGEST_DIRECTLINK = 25
+    SHORTEST_DIRECTLINK = 15
+    LONGEST_DIRECTLINK = 30
 elif LAYOUT_SETTING=='B':
     N_LINKS = 15
     FIELD_LENGTH = 250

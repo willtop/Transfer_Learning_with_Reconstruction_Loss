@@ -77,17 +77,16 @@ if(__name__=="__main__"):
     Source-Task Training 
     """
     print(f"<<<<<<<<<<<<<<<<<<<<<<<[{SOURCETASK['Fullname']}]->[{TARGETTASK['Fullname']}]>>>>>>>>>>>>>>>>>>>>>>")
-    MINIBATCH_SIZE = 2000
     print("[Source Task] Loading data...")
     g = np.load(f"Data/g_sourceTask_{SETTING_STRING}.npy")
     assert np.shape(g)[0] == SOURCETASK['Train'] + SOURCETASK['Valid']
     g_train, g_valid = g[:SOURCETASK['Train']], g[-SOURCETASK['Valid']:]
-    assert SOURCETASK['Train'] % MINIBATCH_SIZE == 0
-    n_minibatches = int(SOURCETASK['Train'] / MINIBATCH_SIZE)
+    assert SOURCETASK['Train'] % SOURCETASK['Minibatch_Size'] == 0
+    n_minibatches = int(SOURCETASK['Train'] / SOURCETASK['Minibatch_Size'])
     print(f"[Source Task on {SOURCETASK['Task']}] Data Loaded! With {SOURCETASK['Train']} training samples ({n_minibatches} minibatches) and {SOURCETASK['Valid']} validation samples.")
 
     optimizer_regular, optimizer_transfer, optimizer_ae_transfer = \
-            optim.Adam(regular_net.parameters(), lr=LEARNING_RATE_SOURCETASK), optim.Adam(transfer_net.parameters(), lr=LEARNING_RATE_SOURCETASK), optim.Adam(ae_transfer_net.parameters(), lr=LEARNING_RATE_SOURCETASK)
+            optim.Adam(regular_net.parameters(), lr=SOURCETASK['Learning_Rate']), optim.Adam(transfer_net.parameters(), lr=LEARNING_RATE_SOURCETASK), optim.Adam(ae_transfer_net.parameters(), lr=LEARNING_RATE_SOURCETASK)
     regular_loss_min, transfer_loss_min, ae_transfer_loss_combined_min = np.inf, np.inf, np.inf
     train_loss_eps, valid_loss_eps = [], []
     for i in trange(1, N_EPOCHES_SOURCETASK+1):
@@ -150,7 +149,6 @@ if(__name__=="__main__"):
     """ 
     Target Task Training
     """
-    MINIBATCH_SIZE = 50
     print("[Target Task] Loading data...")
     g = np.load(f"Data/g_targetTask_{SETTING_STRING}.npy")
     assert np.shape(g)[0] == TARGETTASK['Train'] + TARGETTASK['Valid']
