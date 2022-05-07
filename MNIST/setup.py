@@ -17,7 +17,8 @@ SourceTask_MNIST = {'Type': 'Source-Task',
   'Valid': 4000,
   'Minibatch_Size': 100,
   'Epochs': 30,
-  'Learning_Rate': 1e-3}
+  'Learning_Rate': 1e-3,
+  'Loss_Combine_Weight': 1}
 TargetTask_MNIST = {'Type': 'Target_Task',
   'Task': 5,
   'Fullname': 'MNIST Identify 5',

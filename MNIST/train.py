@@ -64,6 +64,7 @@ def shuffle_divide_batches(inputs, n_batches):
     return inputs_batches
 
 EARLY_STOPPING = True
+LOSS_FUNC = torch.nn.BCELoss(reduction='mean')
 
 if(__name__=="__main__"):
     parser = argparse.ArgumentParser(description="main script argument parser")
@@ -80,10 +81,10 @@ if(__name__=="__main__"):
                                             transforms.Lambda(lambda x: x.flatten())], 
               target_transform=transforms.Lambda(lambda y: int(y==SOURCETASK['Task']))))
 
+    print(f"<<<<<<<<<<<<<<<<<<<<<<<Learn to identify [{SOURCETASK['Task']}]->[{TARGETTASK['Task']}]>>>>>>>>>>>>>>>>>>>>>>")
     """ 
     Source-Task Training 
     """
-    print(f"<<<<<<<<<<<<<<<<<<<<<<<Learn to identify [{SOURCETASK['Task']}]->[{TARGETTASK['Task']}]>>>>>>>>>>>>>>>>>>>>>>")
     regular_net, transfer_net, ae_transfer_net = \
             Regular_Net().to(DEVICE), Transfer_Net().to(DEVICE), Autoencoder_Transfer_Net().to(DEVICE)
     # The split should be reproduciable with torch.manual_seed set in setup.py                                
@@ -98,23 +99,25 @@ if(__name__=="__main__"):
             optim.Adam(transfer_net.parameters(), lr=SOURCETASK['Learning_Rate']), \
             optim.Adam(ae_transfer_net.parameters(), lr=SOURCETASK['Learning_Rate'])
     regular_loss_min, transfer_loss_min, ae_transfer_loss_combined_min = np.inf, np.inf, np.inf
-    train_loss_eps, valid_loss_eps = [], []
+    train_loss_eps, valid_loss_eps, valid_accuracies_eps = [], [], []
     for i in trange(1, SOURCETASK['Epochs']+1):
         regular_loss_ep, transfer_loss_ep, ae_transfer_loss_ep, ae_transfer_loss_combined_ep = 0, 0, 0, 0
         for j, data, targets in enumerate(train_loader):
+            assert data.size() == (SOURCETASK['Minibatch_Size'], 28*28) and \
+                   targets.size() == (SOURCETASK['Minibatch_Size'],)
             optimizer_regular.zero_grad()
             optimizer_transfer.zero_grad()
             optimizer_ae_transfer.zero_grad()
             # Regular Net
             predictions = regular_net.sourcetask(data.to(DEVICE))
-            regular_loss = -objAvg
+            regular_loss = LOSS_FUNC(torch.squeeze(predictions), targets.to(DEVICE))
             # Transfer Net
             predictions = transfer_net.sourcetask(data.to(DEVICE))
-            transfer_loss = -objAvg
+            transfer_loss = LOSS_FUNC(torch.squeeze(predictions), targets.to(DEVICE))
             # AutoEncoder Transfer Net
-            _, objAvg, reconstruct_loss = ae_transfer_net.sourceTask_powerControl(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
-            ae_transfer_loss = -objAvg
-            ae_transfer_loss_combined = ae_transfer_loss + COMBINE_WEIGHT_RECONSTRUCT * reconstruct_loss
+            predictions, reconstruct_loss = ae_transfer_net.sourcetask(data.to(DEVICE))
+            ae_transfer_loss = LOSS_FUNC(torch.squeeze(predictions), targets.to(DEVICE))
+            ae_transfer_loss_combined = ae_transfer_loss + SOURCETASK['Loss_Combine_Weight'] * reconstruct_loss
             # Training and recording loss
             regular_loss.backward(); optimizer_regular.step()
             transfer_loss.backward(); optimizer_transfer.step()
@@ -125,18 +128,30 @@ if(__name__=="__main__"):
             ae_transfer_loss_combined_ep += ae_transfer_loss_combined.item()
             if (j+1) % min(50,n_minibatches) == 0:
                 # Validation
-                with torch.no_grad():
-                    _, objAvg = regular_net.sourceTask_powerControl(torch.tensor(g_valid, dtype=torch.float32).to(DEVICE))
-                    regular_loss = -objAvg.item()
-                    _, objAvg = transfer_net.sourceTask_powerControl(torch.tensor(g_valid, dtype=torch.float32).to(DEVICE))
-                    transfer_loss = -objAvg.item()
-                    _, objAvg, reconstruct_loss = ae_transfer_net.sourceTask_powerControl(torch.tensor(g_valid, dtype=torch.float32).to(DEVICE))
-                    ae_transfer_loss = -objAvg.item()
-                    ae_transfer_loss_combined = ae_transfer_loss + COMBINE_WEIGHT_RECONSTRUCT * reconstruct_loss.item()
+                for data, targets in valid_loader: # only load up one batch
+                    assert data.size() == (SOURCETASK['Valid'], 28*28) and \
+                        targets.size() == (SOURCETASK['Valid'],)
+                    with torch.no_grad():
+                        predictions = torch.squeeze(regular_net.sourcetask(data.to(DEVICE)))
+                        regular_loss = LOSS_FUNC(predictions, targets.to(DEVICE)).item()
+                        regular_accuracy = np.mean(predictions.round().detach().numpy() == targets.numpy())
+                        predictions = torch.squeeze(transfer_net.sourcetask(data.to(DEVICE)))
+                        transfer_loss = LOSS_FUNC(predictions, targets.to(DEVICE)).item()
+                        transfer_accuracy = np.mean(predictions.round().detach().numpy() == targets.numpy())
+                        predictions, reconstruct_loss = ae_transfer_net.sourcetask(data.to(DEVICE))
+                        predictions = torch.squeeze(predictions)
+                        ae_transfer_loss = LOSS_FUNC(predictions, targets.to(DEVICE)).item()
+                        ae_transfer_loss_combined = ae_transfer_loss + SOURCETASK['Loss_Combine_Weight'] * reconstruct_loss.item()
+                        ae_transfer_accuracy = np.mean(predictions.round().detach().numpy() == targets.numpy())
                 train_loss_eps.append([regular_loss_ep/(j+1), transfer_loss_ep/(j+1), ae_transfer_loss_ep/(j+1), ae_transfer_loss_combined_ep/(j+1)])
                 valid_loss_eps.append([regular_loss, transfer_loss, ae_transfer_loss, ae_transfer_loss_combined])
-                print("[Source Task][Regular] Tr:{:6.3e}; Va:{:6.3e} [Transfer] Tr: {:6.3e}; Va:{:6.3e} [AE Transfer] Tr: {:6.3e}; Va: {:6.3e}".format(
-                    regular_loss_ep/(j+1), regular_loss, transfer_loss_ep/(j+1), transfer_loss, ae_transfer_loss_ep/(j+1), ae_transfer_loss))
+                valid_accuracies_eps.append([regular_accuracy, transfer_accuracy, ae_transfer_accuracy])
+                print("[Source Task][Regular] Tr:{:6.3e}; Va:{:6.3e}; Va Accur: {:.2f}% \
+                       [Transfer] Tr: {:6.3e}; Va:{:6.3e}; Va Accur: {:.2f}% \
+                       [AE Transfer] Tr: {:6.3e}; Va: {:6.3e}; Va Accur: {:.2f}%".format(
+                       regular_loss_ep/(j+1), regular_loss, regular_accuracy*100,
+                       transfer_loss_ep/(j+1), transfer_loss, transfer_accuracy*100,
+                       ae_transfer_loss_ep/(j+1), ae_transfer_loss, ae_transfer_accuracy*100))
                 if EARLY_STOPPING:
                     # Early stopping based on validation losses
                     if (regular_loss < regular_loss_min):
@@ -156,80 +171,91 @@ if(__name__=="__main__"):
                 np.save(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/valid_losses_sourceTask_{SETTING_STRING}.npy", np.array(valid_loss_eps))
 
     """ 
-    Target Task Training
+    Source-Task Training 
     """
-    MINIBATCH_SIZE = 50
-    print("[Target Task] Loading data...")
-    g = np.load(f"Data/g_targetTask_{SETTING_STRING}.npy")
-    assert np.shape(g)[0] == TARGETTASK['Train'] + TARGETTASK['Valid']
-    g_train, g_valid = g[:TARGETTASK['Train']], g[-TARGETTASK['Valid']:]
-    assert TARGETTASK['Train'] % MINIBATCH_SIZE == 0
-    n_minibatches = int(TARGETTASK['Train'] / MINIBATCH_SIZE)
-    print(f"[Target Task] Data Loaded! With {TARGETTASK['Train']} training samples ({n_minibatches} minibatches) and {TARGETTASK['Valid']} validation samples.")
-
-    # Create neural network objects again so they load weights from previous early stopping best checkpoint on source task
     regular_net, transfer_net, ae_transfer_net = \
             Regular_Net().to(DEVICE), Transfer_Net().to(DEVICE), Autoencoder_Transfer_Net().to(DEVICE)
-    print("[Target Task] Freeze the neural network parameters up to the feature layers...")
-    transfer_net.freeze_parameters()
-    ae_transfer_net.freeze_parameters()
+    # The split should be reproduciable with torch.manual_seed set in setup.py                                
+    train_data, valid_data = random_split(source_data, [SOURCETASK['Train'], SOURCETASK['Valid']])
+    train_loader = DataLoader(train_data, batch_size = SOURCETASK['Minibatch_Size'], shuffle=True)    
+    valid_loader = DataLoader(valid_data, batch_size = len(valid_data), shuffle=False)
+    n_minibatches = int(SOURCETASK['Train'] / SOURCETASK['Minibatch_Size'])
+    print(f"[Source Task on {SOURCETASK['Task']}] Data Loaded! With {SOURCETASK['Train']} training samples ({n_minibatches} minibatches) and {SOURCETASK['Valid']} validation samples.")
+
     optimizer_regular, optimizer_transfer, optimizer_ae_transfer = \
-            optim.Adam(filter(lambda para: para.requires_grad, regular_net.parameters()), lr=LEARNING_RATE_TARGETTASK), \
-            optim.Adam(filter(lambda para: para.requires_grad, transfer_net.parameters()), lr=LEARNING_RATE_TARGETTASK), \
-            optim.Adam(filter(lambda para: para.requires_grad, ae_transfer_net.parameters()), lr=LEARNING_RATE_TARGETTASK)
-    regular_loss_min, transfer_loss_min, ae_transfer_loss_min = np.inf, np.inf, np.inf
-    train_loss_eps, valid_loss_eps = [], []
-    for i in trange(1, N_EPOCHES_TARGETTASK+1):
-        regular_loss_ep, transfer_loss_ep, ae_transfer_loss_ep = 0, 0, 0
-        g_batches = shuffle_divide_batches(g_train, n_minibatches)
-        for j in range(n_minibatches):
+            optim.Adam(regular_net.parameters(), lr=SOURCETASK['Learning_Rate']), \
+            optim.Adam(transfer_net.parameters(), lr=SOURCETASK['Learning_Rate']), \
+            optim.Adam(ae_transfer_net.parameters(), lr=SOURCETASK['Learning_Rate'])
+    regular_loss_min, transfer_loss_min, ae_transfer_loss_combined_min = np.inf, np.inf, np.inf
+    train_loss_eps, valid_loss_eps, valid_accuracies_eps = [], [], []
+    for i in trange(1, SOURCETASK['Epochs']+1):
+        regular_loss_ep, transfer_loss_ep, ae_transfer_loss_ep, ae_transfer_loss_combined_ep = 0, 0, 0, 0
+        for j, data, targets in enumerate(train_loader):
+            assert data.size() == (SOURCETASK['Minibatch_Size'], 28*28) and \
+                   targets.size() == (SOURCETASK['Minibatch_Size'],)
             optimizer_regular.zero_grad()
             optimizer_transfer.zero_grad()
             optimizer_ae_transfer.zero_grad()
             # Regular Net
-            _, objAvg = regular_net.targetTask_powerControl(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
-            regular_loss = -objAvg
+            predictions = regular_net.sourcetask(data.to(DEVICE))
+            regular_loss = LOSS_FUNC(torch.squeeze(predictions), targets.to(DEVICE))
             # Transfer Net
-            _, objAvg = transfer_net.targetTask_powerControl(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
-            transfer_loss = -objAvg
+            predictions = transfer_net.sourcetask(data.to(DEVICE))
+            transfer_loss = LOSS_FUNC(torch.squeeze(predictions), targets.to(DEVICE))
             # AutoEncoder Transfer Net
-            _, objAvg = ae_transfer_net.targetTask_powerControl(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
-            ae_transfer_loss = -objAvg
+            predictions, reconstruct_loss = ae_transfer_net.sourcetask(data.to(DEVICE))
+            ae_transfer_loss = LOSS_FUNC(torch.squeeze(predictions), targets.to(DEVICE))
+            ae_transfer_loss_combined = ae_transfer_loss + SOURCETASK['Loss_Combine_Weight'] * reconstruct_loss
             # Training and recording loss
             regular_loss.backward(); optimizer_regular.step()
             transfer_loss.backward(); optimizer_transfer.step()
-            ae_transfer_loss.backward(); optimizer_ae_transfer.step()           
+            ae_transfer_loss_combined.backward(); optimizer_ae_transfer.step()           
             regular_loss_ep += regular_loss.item()
             transfer_loss_ep += transfer_loss.item()
             ae_transfer_loss_ep += ae_transfer_loss.item()
-        # Validation
-        with torch.no_grad():
-            _, objAvg = regular_net.targetTask_powerControl(torch.tensor(g_valid, dtype=torch.float32).to(DEVICE))
-            regular_loss = -objAvg.item()
-            _, objAvg = transfer_net.targetTask_powerControl(torch.tensor(g_valid, dtype=torch.float32).to(DEVICE))
-            transfer_loss = -objAvg.item()
-            _, objAvg = ae_transfer_net.targetTask_powerControl(torch.tensor(g_valid, dtype=torch.float32).to(DEVICE))
-            ae_transfer_loss = -objAvg.item()
-        train_loss_eps.append([regular_loss_ep/(j+1), transfer_loss_ep/(j+1), ae_transfer_loss_ep/(j+1)])
-        valid_loss_eps.append([regular_loss, transfer_loss, ae_transfer_loss])
-        print("[Target Task][Regular] Tr:{:6.3e}; Va:{:6.3e} [Transfer] Tr: {:6.3e}; Va:{:6.3e} [AE Transfer] Tr: {:6.3e}; Va: {:6.3e}".format(
-            regular_loss_ep/(j+1), regular_loss, transfer_loss_ep/(j+1), transfer_loss, ae_transfer_loss_ep/(j+1), ae_transfer_loss))
-        if EARLY_STOPPING:
-            # Early stopping based on validation losses
-            if (regular_loss < regular_loss_min):
-                regular_net.save_model()
-                regular_loss_min = regular_loss
-            if (transfer_loss < transfer_loss_min):
-                transfer_net.save_model()
-                transfer_loss_min = transfer_loss
-            if (ae_transfer_loss < ae_transfer_loss_min):
-                ae_transfer_net.save_model()
-                ae_transfer_loss_min = ae_transfer_loss    
-        else:
-            regular_net.save_model()
-            transfer_net.save_model()
-            ae_transfer_net.save_model()
-        np.save(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/train_losses_targetTask_{SETTING_STRING}.npy", np.array(train_loss_eps))
-        np.save(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/valid_losses_targetTask_{SETTING_STRING}.npy", np.array(valid_loss_eps))
+            ae_transfer_loss_combined_ep += ae_transfer_loss_combined.item()
+            if (j+1) % min(50,n_minibatches) == 0:
+                # Validation
+                for data, targets in valid_loader: # only load up one batch
+                    assert data.size() == (SOURCETASK['Valid'], 28*28) and \
+                        targets.size() == (SOURCETASK['Valid'],)
+                    with torch.no_grad():
+                        predictions = torch.squeeze(regular_net.sourcetask(data.to(DEVICE)))
+                        regular_loss = LOSS_FUNC(predictions, targets.to(DEVICE)).item()
+                        regular_accuracy = np.mean(predictions.round().detach().numpy() == targets.numpy())
+                        predictions = torch.squeeze(transfer_net.sourcetask(data.to(DEVICE)))
+                        transfer_loss = LOSS_FUNC(predictions, targets.to(DEVICE)).item()
+                        transfer_accuracy = np.mean(predictions.round().detach().numpy() == targets.numpy())
+                        predictions, reconstruct_loss = ae_transfer_net.sourcetask(data.to(DEVICE))
+                        predictions = torch.squeeze(predictions)
+                        ae_transfer_loss = LOSS_FUNC(predictions, targets.to(DEVICE)).item()
+                        ae_transfer_loss_combined = ae_transfer_loss + SOURCETASK['Loss_Combine_Weight'] * reconstruct_loss.item()
+                        ae_transfer_accuracy = np.mean(predictions.round().detach().numpy() == targets.numpy())
+                train_loss_eps.append([regular_loss_ep/(j+1), transfer_loss_ep/(j+1), ae_transfer_loss_ep/(j+1), ae_transfer_loss_combined_ep/(j+1)])
+                valid_loss_eps.append([regular_loss, transfer_loss, ae_transfer_loss, ae_transfer_loss_combined])
+                valid_accuracies_eps.append([regular_accuracy, transfer_accuracy, ae_transfer_accuracy])
+                print("[Source Task][Regular] Tr:{:6.3e}; Va:{:6.3e}; Va Accur: {:.2f}% \
+                       [Transfer] Tr: {:6.3e}; Va:{:6.3e}; Va Accur: {:.2f}% \
+                       [AE Transfer] Tr: {:6.3e}; Va: {:6.3e}; Va Accur: {:.2f}%".format(
+                       regular_loss_ep/(j+1), regular_loss, regular_accuracy*100,
+                       transfer_loss_ep/(j+1), transfer_loss, transfer_accuracy*100,
+                       ae_transfer_loss_ep/(j+1), ae_transfer_loss, ae_transfer_accuracy*100))
+                if EARLY_STOPPING:
+                    # Early stopping based on validation losses
+                    if (regular_loss < regular_loss_min):
+                        regular_net.save_model()
+                        regular_loss_min = regular_loss
+                    if (transfer_loss < transfer_loss_min):
+                        transfer_net.save_model()
+                        transfer_loss_min = transfer_loss
+                    if (ae_transfer_loss_combined < ae_transfer_loss_combined_min):
+                        ae_transfer_net.save_model()
+                        ae_transfer_loss_combined_min = ae_transfer_loss_combined    
+                else:
+                    regular_net.save_model()
+                    transfer_net.save_model()
+                    ae_transfer_net.save_model()
+                np.save(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/train_losses_sourceTask_{SETTING_STRING}.npy", np.array(train_loss_eps))
+                np.save(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/valid_losses_sourceTask_{SETTING_STRING}.npy", np.array(valid_loss_eps))
 
     print(f"[{SOURCETASK['Fullname']}]->[{TARGETTASK['Fullname']}] Training finished!")
