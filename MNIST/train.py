@@ -4,6 +4,7 @@ from random import gammavariate
 import numpy as np
 from utils import FP_power_control, compute_SINRs, compute_rates
 import torch
+from torch.utils.data import DataLoader, random_split
 from torchvision.datasets import MNIST
 from torchvision import transforms
 import torch.nn as nn
@@ -72,49 +73,43 @@ if(__name__=="__main__"):
         plot_training_curves()
         exit(0)
 
-    regular_net, transfer_net, ae_transfer_net = \
-            Regular_Net().to(DEVICE), Transfer_Net().to(DEVICE), Autoencoder_Transfer_Net().to(DEVICE)
+    print("Loading MNIST source data...")
+    source_data = MNIST(root='MNIST_Data/', train=True, download=True, 
+              transform=transforms.compose([transforms.ToTensor(),
+                                            transforms.Normalize(mean=(0.1307,), std=(0.3081,)),
+                                            transforms.Lambda(lambda x: x.flatten())], 
+              target_transform=transforms.Lambda(lambda y: int(y==SOURCETASK['Task']))))
 
     """ 
     Source-Task Training 
     """
-    print(f"<<<<<<<<<<<<<<<<<<<<<<<Learn to identify [{SOURCETASK['Number']}]->[{TARGETTASK['Number']}]>>>>>>>>>>>>>>>>>>>>>>")
-    MINIBATCH_SIZE = 2000
-    print("[Source Task] Loading MNIST training data...")
-    train_loader = torch.utils.data.DataLoader(
-        MNIST(root='MNIST_Data/', train=True, download=True, 
-              transform=transforms.compose([transforms.ToTensor(),
-                                            transforms.Normalize(mean=(0.1307,), std=(0.3081,)),
-                                            transforms.Lambda(lambda x: x.flatten())
-                                    ])),
-        batch_size = MINIBATCH_SIZE, shuffle=True)    
-    valid_set = MNIST(root='MNIST_Data/', train=True, download=True, 
-              transform=transforms.compose([transforms.ToTensor(),
-                                            transforms.Normalize(mean=(0.1307,), std=(0.3081,)),
-                                            transforms.Lambda(lambda x: x.flatten())
-                                    ]))
-    assert np.shape(g)[0] == SOURCETASK['Train'] + SOURCETASK['Valid']
-    g_train, g_valid = g[:SOURCETASK['Train']], g[-SOURCETASK['Valid']:]
-    assert SOURCETASK['Train'] % MINIBATCH_SIZE == 0
-    n_minibatches = int(SOURCETASK['Train'] / MINIBATCH_SIZE)
+    print(f"<<<<<<<<<<<<<<<<<<<<<<<Learn to identify [{SOURCETASK['Task']}]->[{TARGETTASK['Task']}]>>>>>>>>>>>>>>>>>>>>>>")
+    regular_net, transfer_net, ae_transfer_net = \
+            Regular_Net().to(DEVICE), Transfer_Net().to(DEVICE), Autoencoder_Transfer_Net().to(DEVICE)
+    # The split should be reproduciable with torch.manual_seed set in setup.py                                
+    train_data, valid_data = random_split(source_data, [SOURCETASK['Train'], SOURCETASK['Valid']])
+    train_loader = DataLoader(train_data, batch_size = SOURCETASK['Minibatch_Size'], shuffle=True)    
+    valid_loader = DataLoader(valid_data, batch_size = len(valid_data), shuffle=False)
+    n_minibatches = int(SOURCETASK['Train'] / SOURCETASK['Minibatch_Size'])
     print(f"[Source Task on {SOURCETASK['Task']}] Data Loaded! With {SOURCETASK['Train']} training samples ({n_minibatches} minibatches) and {SOURCETASK['Valid']} validation samples.")
 
     optimizer_regular, optimizer_transfer, optimizer_ae_transfer = \
-            optim.Adam(regular_net.parameters(), lr=LEARNING_RATE_SOURCETASK), optim.Adam(transfer_net.parameters(), lr=LEARNING_RATE_SOURCETASK), optim.Adam(ae_transfer_net.parameters(), lr=LEARNING_RATE_SOURCETASK)
+            optim.Adam(regular_net.parameters(), lr=SOURCETASK['Learning_Rate']), \
+            optim.Adam(transfer_net.parameters(), lr=SOURCETASK['Learning_Rate']), \
+            optim.Adam(ae_transfer_net.parameters(), lr=SOURCETASK['Learning_Rate'])
     regular_loss_min, transfer_loss_min, ae_transfer_loss_combined_min = np.inf, np.inf, np.inf
     train_loss_eps, valid_loss_eps = [], []
-    for i in trange(1, N_EPOCHES_SOURCETASK+1):
+    for i in trange(1, SOURCETASK['Epochs']+1):
         regular_loss_ep, transfer_loss_ep, ae_transfer_loss_ep, ae_transfer_loss_combined_ep = 0, 0, 0, 0
-        g_batches = shuffle_divide_batches(g_train, n_minibatches)
-        for j in range(n_minibatches):
+        for j, data, targets in enumerate(train_loader):
             optimizer_regular.zero_grad()
             optimizer_transfer.zero_grad()
             optimizer_ae_transfer.zero_grad()
             # Regular Net
-            _, objAvg = regular_net.sourceTask_powerControl(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
+            predictions = regular_net.sourcetask(data.to(DEVICE))
             regular_loss = -objAvg
             # Transfer Net
-            _, objAvg = transfer_net.sourceTask_powerControl(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
+            predictions = transfer_net.sourcetask(data.to(DEVICE))
             transfer_loss = -objAvg
             # AutoEncoder Transfer Net
             _, objAvg, reconstruct_loss = ae_transfer_net.sourceTask_powerControl(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))

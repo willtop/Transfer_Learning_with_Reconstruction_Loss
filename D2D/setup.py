@@ -25,7 +25,7 @@ TargetTask_Min = {'Type': 'Target-Task',
         'Train': 1000,
         'Valid': 5000,
         'Minibatch_Size': 100,
-        'Learning_Rate': 1e-5,
+        'Learning_Rate': 1e-4,
         'Epochs': 15000}
 TargetTask_Sum = {'Type': 'Target-Task',
         'Task': 'Sum',
@@ -33,7 +33,7 @@ TargetTask_Sum = {'Type': 'Target-Task',
         'Train': 1000,
         'Valid': 5000,
         'Minibatch_Size': 100,
-        'Learning_Rate': 1e-5,
+        'Learning_Rate': 1e-4,
         'Epochs': 15000}
 
 # Transfer Configuration on Task Specifications
@@ -50,6 +50,8 @@ else:
     exit(1)
 N_TEST_SAMPLES = 2000
 
+assert SOURCETASK['Train'] % SOURCETASK['Minibatch_Size'] == 0 and \
+       TARGETTASK['Train'] % TARGETTASK['Minibatch_Size'] == 0
 
 # millimeter wave environment settings
 BANDWIDTH = 5e6

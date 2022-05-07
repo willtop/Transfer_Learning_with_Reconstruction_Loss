@@ -70,13 +70,13 @@ if(__name__=="__main__"):
         plot_training_curves()
         exit(0)
 
-    regular_net, transfer_net, ae_transfer_net = \
-            Regular_Net().to(DEVICE), Transfer_Net().to(DEVICE), Autoencoder_Transfer_Net().to(DEVICE)
 
     """ 
     Source-Task Training 
     """
     print(f"<<<<<<<<<<<<<<<<<<<<<<<[{SOURCETASK['Fullname']}]->[{TARGETTASK['Fullname']}]>>>>>>>>>>>>>>>>>>>>>>")
+    regular_net, transfer_net, ae_transfer_net = \
+            Regular_Net().to(DEVICE), Transfer_Net().to(DEVICE), Autoencoder_Transfer_Net().to(DEVICE)
     print("[Source Task] Loading data...")
     g = np.load(f"Data/g_sourceTask_{SETTING_STRING}.npy")
     assert np.shape(g)[0] == SOURCETASK['Train'] + SOURCETASK['Valid']
@@ -86,10 +86,12 @@ if(__name__=="__main__"):
     print(f"[Source Task on {SOURCETASK['Task']}] Data Loaded! With {SOURCETASK['Train']} training samples ({n_minibatches} minibatches) and {SOURCETASK['Valid']} validation samples.")
 
     optimizer_regular, optimizer_transfer, optimizer_ae_transfer = \
-            optim.Adam(regular_net.parameters(), lr=SOURCETASK['Learning_Rate']), optim.Adam(transfer_net.parameters(), lr=LEARNING_RATE_SOURCETASK), optim.Adam(ae_transfer_net.parameters(), lr=LEARNING_RATE_SOURCETASK)
+            optim.Adam(regular_net.parameters(), lr=SOURCETASK['Learning_Rate']), \
+            optim.Adam(transfer_net.parameters(), lr=SOURCETASK['Learning_Rate']), \
+            optim.Adam(ae_transfer_net.parameters(), lr=SOURCETASK['Learning_Rate'])
     regular_loss_min, transfer_loss_min, ae_transfer_loss_combined_min = np.inf, np.inf, np.inf
     train_loss_eps, valid_loss_eps = [], []
-    for i in trange(1, N_EPOCHES_SOURCETASK+1):
+    for i in trange(1, SOURCETASK['Epochs']+1):
         regular_loss_ep, transfer_loss_ep, ae_transfer_loss_ep, ae_transfer_loss_combined_ep = 0, 0, 0, 0
         g_batches = shuffle_divide_batches(g_train, n_minibatches)
         for j in range(n_minibatches):
@@ -105,7 +107,7 @@ if(__name__=="__main__"):
             # AutoEncoder Transfer Net
             _, objAvg, reconstruct_loss = ae_transfer_net.sourceTask_powerControl(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
             ae_transfer_loss = -objAvg
-            ae_transfer_loss_combined = ae_transfer_loss + COMBINE_WEIGHT_RECONSTRUCT * reconstruct_loss
+            ae_transfer_loss_combined = ae_transfer_loss + SOURCETASK['Loss_Combine_Weight'] * reconstruct_loss
             # Training and recording loss
             regular_loss.backward(); optimizer_regular.step()
             transfer_loss.backward(); optimizer_transfer.step()
@@ -123,7 +125,7 @@ if(__name__=="__main__"):
                     transfer_loss = -objAvg.item()
                     _, objAvg, reconstruct_loss = ae_transfer_net.sourceTask_powerControl(torch.tensor(g_valid, dtype=torch.float32).to(DEVICE))
                     ae_transfer_loss = -objAvg.item()
-                    ae_transfer_loss_combined = ae_transfer_loss + COMBINE_WEIGHT_RECONSTRUCT * reconstruct_loss.item()
+                    ae_transfer_loss_combined = ae_transfer_loss + SOURCETASK['Loss_Combine_Weight'] * reconstruct_loss.item()
                 train_loss_eps.append([regular_loss_ep/(j+1), transfer_loss_ep/(j+1), ae_transfer_loss_ep/(j+1), ae_transfer_loss_combined_ep/(j+1)])
                 valid_loss_eps.append([regular_loss, transfer_loss, ae_transfer_loss, ae_transfer_loss_combined])
                 print("[Source Task][Regular] Tr:{:6.3e}; Va:{:6.3e} [Transfer] Tr: {:6.3e}; Va:{:6.3e} [AE Transfer] Tr: {:6.3e}; Va: {:6.3e}".format(
@@ -153,8 +155,8 @@ if(__name__=="__main__"):
     g = np.load(f"Data/g_targetTask_{SETTING_STRING}.npy")
     assert np.shape(g)[0] == TARGETTASK['Train'] + TARGETTASK['Valid']
     g_train, g_valid = g[:TARGETTASK['Train']], g[-TARGETTASK['Valid']:]
-    assert TARGETTASK['Train'] % MINIBATCH_SIZE == 0
-    n_minibatches = int(TARGETTASK['Train'] / MINIBATCH_SIZE)
+    assert TARGETTASK['Train'] % TARGETTASK['Minibatch_Size'] == 0
+    n_minibatches = int(TARGETTASK['Train'] / TARGETTASK['Minibatch_Size'])
     print(f"[Target Task] Data Loaded! With {TARGETTASK['Train']} training samples ({n_minibatches} minibatches) and {TARGETTASK['Valid']} validation samples.")
 
     # Create neural network objects again so they load weights from previous early stopping best checkpoint on source task
@@ -164,12 +166,12 @@ if(__name__=="__main__"):
     transfer_net.freeze_parameters()
     ae_transfer_net.freeze_parameters()
     optimizer_regular, optimizer_transfer, optimizer_ae_transfer = \
-            optim.Adam(filter(lambda para: para.requires_grad, regular_net.parameters()), lr=LEARNING_RATE_TARGETTASK), \
-            optim.Adam(filter(lambda para: para.requires_grad, transfer_net.parameters()), lr=LEARNING_RATE_TARGETTASK), \
-            optim.Adam(filter(lambda para: para.requires_grad, ae_transfer_net.parameters()), lr=LEARNING_RATE_TARGETTASK)
+            optim.Adam(filter(lambda para: para.requires_grad, regular_net.parameters()), lr=TARGETTASK['Learning_Rate']), \
+            optim.Adam(filter(lambda para: para.requires_grad, transfer_net.parameters()), lr=TARGETTASK['Learning_Rate']), \
+            optim.Adam(filter(lambda para: para.requires_grad, ae_transfer_net.parameters()), lr=TARGETTASK['Learning_Rate'])
     regular_loss_min, transfer_loss_min, ae_transfer_loss_min = np.inf, np.inf, np.inf
     train_loss_eps, valid_loss_eps = [], []
-    for i in trange(1, N_EPOCHES_TARGETTASK+1):
+    for i in trange(1, TARGETTASK['Epochs']+1):
         regular_loss_ep, transfer_loss_ep, ae_transfer_loss_ep = 0, 0, 0
         g_batches = shuffle_divide_batches(g_train, n_minibatches)
         for j in range(n_minibatches):
