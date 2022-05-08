@@ -31,11 +31,13 @@ TargetTask_MNIST = {'Type': 'Target_Task',
 if APPLICATION == 'MNIST':
     SOURCETASK = SourceTask_MNIST
     TARGETTASK = TargetTask_MNIST
+    TASK_DESCR = f"MNIST_{SOURCETASK['Task']}-{TARGETTASK['Task']}"
 else:
     print(f"Invalid application {APPLICATION}!")
     exit(1)
 assert SOURCETASK['Train'] % SOURCETASK['Minibatch_Size'] == 0 and \
        TARGETTASK['Train'] % TARGETTASK['Minibatch_Size'] == 0
+assert (TARGETTASK['Train']+TARGETTASK['Valid'])<(SOURCETASK['Train']+SOURCETASK['Valid'])
 
 # set random seed
 RANDOM_SEED = 123

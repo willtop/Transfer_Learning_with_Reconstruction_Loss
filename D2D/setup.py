@@ -18,7 +18,7 @@ SourceTask_HarmonicMean = {'Type': 'Source-Task',
         'Minibatch_Size': 2000,
         'Learning_Rate': 1e-3,
         'Epochs': 100,
-        'Loss_Combine_Weight': 0.2}
+        'Loss_Combine_Weight': 0.1}
 TargetTask_Min = {'Type': 'Target-Task',
         'Task': 'Min',
         'Fullname': 'Min-Rate',
