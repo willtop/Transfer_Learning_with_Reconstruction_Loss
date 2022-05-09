@@ -9,7 +9,7 @@ class Neural_Net(nn.Module):
     def __init__(self):
         super().__init__()
         # model architecture attribute
-        self.feature_length = int(N_LINKS * N_LINKS * 0.75)
+        self.feature_length = int(N_LINKS * N_LINKS * 0.5)
         # attributes to be overridden by subclasses
         self.model_type = None
         self.model_path = None
@@ -83,9 +83,9 @@ class Neural_Net(nn.Module):
         optimizer_module = nn.ModuleList()
         optimizer_module.append(nn.Linear(self.feature_length, 2*N_LINKS))
         optimizer_module.append(nn.ReLU())
-        optimizer_module.append(nn.Linear(2*N_LINKS, 2*N_LINKS))
-        optimizer_module.append(nn.ReLU())
         optimizer_module.append(nn.Linear(2*N_LINKS, N_LINKS))
+        optimizer_module.append(nn.ReLU())
+        optimizer_module.append(nn.Linear(N_LINKS, N_LINKS))
         # with power control output being 0~1
         optimizer_module.append(nn.Sigmoid())
         return optimizer_module

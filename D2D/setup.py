@@ -33,11 +33,11 @@ TargetTask_Sum = {'Type': 'Target-Task',
         'Train': 1000,
         'Valid': 5000,
         'Minibatch_Size': 100,
-        'Learning_Rate': 2e-5,
-        'Epochs': 15000}
+        'Learning_Rate': 1e-5,
+        'Epochs': 30000}
 
 # Transfer Configuration on Task Specifications
-TRANSFER_CONFIGURE = 'I'
+TRANSFER_CONFIGURE = 'II'
 
 if TRANSFER_CONFIGURE == 'I':
     SOURCETASK = SourceTask_HarmonicMean
