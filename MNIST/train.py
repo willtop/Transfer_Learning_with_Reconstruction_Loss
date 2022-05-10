@@ -5,11 +5,12 @@ import torch
 from torch.utils.data import DataLoader, random_split
 import torch.nn as nn
 import torch.optim as optim
+from torchvision.datasets import MNIST
+from torchvision import transforms
 from tqdm import trange
 import argparse
 import matplotlib.pyplot as plt
 from setup import *
-from utils import *
 from neural_nets import Regular_Net, Transfer_Net, Autoencoder_Transfer_Net
 
 
@@ -68,7 +69,7 @@ def plot_training_curves():
     return
 
 
-EARLY_STOPPING = True
+EARLY_STOPPING = False
 LOSS_FUNC = torch.nn.BCELoss(reduction='mean')
 
 if(__name__=="__main__"):
@@ -79,17 +80,23 @@ if(__name__=="__main__"):
         plot_training_curves()
         exit(0)
 
+    # Load data (Don't transform targets here yet)
+    # All the splits should be reproduciable with torch.manual_seed set in setup.py                                
+    original_data = MNIST(root=f'Data/{TASK_DESCR}/', train=True, download=True, 
+            transform=transforms.Compose([transforms.ToTensor(),
+                                            transforms.Normalize(mean=(0.1307,), std=(0.3081,)),
+                                            transforms.Lambda(lambda x: x.flatten())]))
+    assert len(original_data) == 60000
+    sourcetask_data, targettask_data = random_split(original_data, [SOURCETASK['Train']+SOURCETASK['Valid'], TARGETTASK['Train']+TARGETTASK['Valid']])
 
     print(f"<<<<<<<<<<<<<<<<<<<<<<<Learn for {TASK_DESCR}>>>>>>>>>>>>>>>>>>>>>>")
     """ 
     Source-Task Training 
     """
     print("Loading MNIST source data...")
-    source_data = load_source_data("SourceTaskTrain")
     regular_net, transfer_net, ae_transfer_net = \
             Regular_Net().to(DEVICE), Transfer_Net().to(DEVICE), Autoencoder_Transfer_Net().to(DEVICE)
-    # The split should be reproduciable with torch.manual_seed set in setup.py                                
-    train_data, valid_data = random_split(source_data, [SOURCETASK['Train'], SOURCETASK['Valid']])
+    train_data, valid_data = random_split(sourcetask_data, [SOURCETASK['Train'], SOURCETASK['Valid']])
     train_loader = DataLoader(train_data, batch_size = SOURCETASK['Minibatch_Size'], shuffle=True)    
     valid_loader = DataLoader(valid_data, batch_size = len(valid_data), shuffle=False)
     n_minibatches = int(SOURCETASK['Train'] / SOURCETASK['Minibatch_Size'])
@@ -105,7 +112,8 @@ if(__name__=="__main__"):
         regular_loss_ep, transfer_loss_ep, ae_transfer_loss_ep, ae_transfer_loss_combined_ep = 0, 0, 0, 0
         for j, (data, targets) in enumerate(train_loader):
             assert data.size() == (SOURCETASK['Minibatch_Size'], 28*28) and \
-                   targets.size() == (SOURCETASK['Minibatch_Size'],)
+                   targets.size() == (SOURCETASK['Minibatch_Size'], ) 
+            targets = torch.tensor(targets==SOURCETASK['Task'], dtype=torch.float32)
             optimizer_regular.zero_grad()
             optimizer_transfer.zero_grad()
             optimizer_ae_transfer.zero_grad()
@@ -131,7 +139,8 @@ if(__name__=="__main__"):
                 # Validation
                 for data, targets in valid_loader: # only load up one batch
                     assert data.size() == (SOURCETASK['Valid'], 28*28) and \
-                        targets.size() == (SOURCETASK['Valid'],)
+                        targets.size() == (SOURCETASK['Valid'], )
+                    targets = torch.tensor(targets==SOURCETASK['Task'], dtype=torch.float32)                    
                     with torch.no_grad():
                         predictions = regular_net.sourcetask(data.to(DEVICE))
                         regular_loss = LOSS_FUNC(predictions, targets.to(DEVICE)).item()
@@ -174,10 +183,8 @@ if(__name__=="__main__"):
     """ 
     Target-Task Training 
     """
-    source_data = load_source_data("TargetTaskTrain")
     # The splits should be reproduciable with torch.manual_seed set in setup.py                                
-    target_task_data, _ = random_split(source_data, [TARGETTASK['Train']+TARGETTASK['Valid'], len(source_data)-(TARGETTASK['Train']+TARGETTASK['Valid'])])
-    train_data, valid_data = random_split(target_task_data, [TARGETTASK['Train'], TARGETTASK['Valid']])
+    train_data, valid_data = random_split(targettask_data, [TARGETTASK['Train'], TARGETTASK['Valid']])
     train_loader = DataLoader(train_data, batch_size = TARGETTASK['Minibatch_Size'], shuffle=True)    
     valid_loader = DataLoader(valid_data, batch_size = len(valid_data), shuffle=False)
     n_minibatches = int(TARGETTASK['Train'] / TARGETTASK['Minibatch_Size'])
@@ -199,7 +206,8 @@ if(__name__=="__main__"):
         regular_loss_ep, transfer_loss_ep, ae_transfer_loss_ep = 0, 0, 0
         for j, (data, targets) in enumerate(train_loader):
             assert data.size() == (TARGETTASK['Minibatch_Size'], 28*28) and \
-                   targets.size() == (TARGETTASK['Minibatch_Size'],)
+                   targets.size() == (TARGETTASK['Minibatch_Size'], )
+            targets = torch.tensor(targets==TARGETTASK['Task'], dtype=torch.float32)
             optimizer_regular.zero_grad()
             optimizer_transfer.zero_grad()
             optimizer_ae_transfer.zero_grad()
@@ -223,7 +231,8 @@ if(__name__=="__main__"):
                 # Validation
                 for data, targets in valid_loader: # only load up one batch
                     assert data.size() == (TARGETTASK['Valid'], 28*28) and \
-                        targets.size() == (TARGETTASK['Valid'],)
+                        targets.size() == (TARGETTASK['Valid'], )
+                    targets = torch.tensor(targets==TARGETTASK['Task'], dtype=torch.float32)                    
                     with torch.no_grad():
                         predictions = regular_net.targettask(data.to(DEVICE))
                         regular_loss = LOSS_FUNC(predictions, targets.to(DEVICE)).item()

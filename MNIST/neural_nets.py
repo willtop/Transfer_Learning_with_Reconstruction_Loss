@@ -41,17 +41,13 @@ class Neural_Net(nn.Module):
     # Modules to compose different types of neural net
     def construct_feature_module(self):
         feature_module = nn.ModuleList()
-        feature_module.append(nn.Linear(INPUT_SIZE, 800))
-        feature_module.append(nn.ReLU())
-        feature_module.append(nn.Linear(800, self.feature_length))
+        feature_module.append(nn.Linear(INPUT_SIZE, self.feature_length))
         feature_module.append(nn.ReLU())
         return feature_module
     
     def construct_optimizer_module(self):
         optimizer_module = nn.ModuleList()
-        optimizer_module.append(nn.Linear(self.feature_length, 200))
-        optimizer_module.append(nn.ReLU())
-        optimizer_module.append(nn.Linear(200, 1))
+        optimizer_module.append(nn.Linear(self.feature_length, 1))
         # predicting the probability of the class as 0~1
         optimizer_module.append(nn.Sigmoid())
         return optimizer_module
@@ -168,7 +164,7 @@ if __name__ == "__main__":
     ae_transfer_net = Autoencoder_Transfer_Net()
     n_parameters = sum(p.numel() for p in ae_transfer_net.feature_module.parameters())
     print("The feature module number of parameters: ", n_parameters)
-    n_parameters = sum(p.numel() for p in ae_transfer_net.sourceTask_optimizer_module.parameters())
+    n_parameters = sum(p.numel() for p in ae_transfer_net.sourcetask_optimizer_module.parameters())
     print("The optimizer module number of parameters: ", n_parameters)
     n_parameters = sum(p.numel() for p in ae_transfer_net.decoder_module.parameters())
     print("The decoder module number of parameters: ", n_parameters)

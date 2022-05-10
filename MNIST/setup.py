@@ -13,28 +13,28 @@ APPLICATION = 'MNIST'
 SourceTask_MNIST = {'Type': 'Source_Task',
   'Task': 1,
   'Fullname': 'MNIST Identify 1',
-  'Train': 50000,
-  'Valid': 10000,
-  'Minibatch_Size': 500,
-  'Epochs': 10,
+  'Train': 49900,
+  'Valid': 5000,
+  'Minibatch_Size': 100,
+  'Epochs': 20,
   'Learning_Rate': 1e-4,
-  'Loss_Combine_Weight': 1}
+  'Loss_Combine_Weight': 3}
 TargetTask_MNIST = {'Type': 'Target_Task',
   'Task': 5,
   'Fullname': 'MNIST Identify 5',
   'Train': 100,
-  'Valid': 10000,
+  'Valid': 5000,
   'Minibatch_Size': 50,
-  'Epochs': 500,
-  'Learning_Rate': 1e-4}
-N_TEST_SAMPLES_MNIST = 10000
+  'Epochs': 1000,
+  'Learning_Rate': 5e-5}
 
 if APPLICATION == 'MNIST':
     SOURCETASK = SourceTask_MNIST
     TARGETTASK = TargetTask_MNIST
     TASK_DESCR = f"MNIST_{SOURCETASK['Task']}-{TARGETTASK['Task']}"
     INPUT_SIZE = 28*28
-    N_TEST_SAMPLES = N_TEST_SAMPLES_MNIST
+    N_TEST_SAMPLES = 10000
+    assert SOURCETASK['Train']+SOURCETASK['Valid']+TARGETTASK['Train']+TARGETTASK['Valid'] == 60000
 else:
     print(f"Invalid application {APPLICATION}!")
     exit(1)
