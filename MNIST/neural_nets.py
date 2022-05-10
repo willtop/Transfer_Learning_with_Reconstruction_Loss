@@ -9,7 +9,7 @@ class Neural_Net(nn.Module):
     def __init__(self):
         super().__init__()
         # model architecture attribute
-        self.feature_length = 500
+        self.feature_length = 75
         # attributes to be overridden by subclasses
         self.model_type = None
         self.model_path = None
@@ -41,13 +41,19 @@ class Neural_Net(nn.Module):
     # Modules to compose different types of neural net
     def construct_feature_module(self):
         feature_module = nn.ModuleList()
-        feature_module.append(nn.Linear(INPUT_SIZE, self.feature_length))
+        feature_module.append(nn.Linear(INPUT_SIZE, 150))
+        feature_module.append(nn.ReLU())
+        feature_module.append(nn.Linear(150, 100))
+        feature_module.append(nn.ReLU())
+        feature_module.append(nn.Linear(100, self.feature_length))
         feature_module.append(nn.ReLU())
         return feature_module
     
     def construct_optimizer_module(self):
         optimizer_module = nn.ModuleList()
-        optimizer_module.append(nn.Linear(self.feature_length, 1))
+        optimizer_module.append(nn.Linear(self.feature_length, 10))
+        optimizer_module.append(nn.ReLU())
+        optimizer_module.append(nn.Linear(10, 1))
         # predicting the probability of the class as 0~1
         optimizer_module.append(nn.Sigmoid())
         return optimizer_module
@@ -127,9 +133,9 @@ class Autoencoder_Transfer_Net(Neural_Net):
 
     def construct_decoder_module(self):
         decoder_module = nn.ModuleList()
-        decoder_module.append(nn.Linear(self.feature_length, 800))
+        decoder_module.append(nn.Linear(self.feature_length, 100))
         decoder_module.append(nn.ReLU())
-        decoder_module.append(nn.Linear(800, INPUT_SIZE))
+        decoder_module.append(nn.Linear(100, INPUT_SIZE))
         return decoder_module
 
     def sourcetask(self, x):

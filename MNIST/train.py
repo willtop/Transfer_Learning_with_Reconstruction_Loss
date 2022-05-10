@@ -12,6 +12,7 @@ import argparse
 import matplotlib.pyplot as plt
 from setup import *
 from neural_nets import Regular_Net, Transfer_Net, Autoencoder_Transfer_Net
+import utils
 
 
 def plot_training_curves():
@@ -68,8 +69,9 @@ def plot_training_curves():
     print("Finished plotting!")
     return
 
-
-EARLY_STOPPING = False
+# Since CE loss is not tightly correlated with the accuracy. Use validation accuracy
+# for early stopping criterion (except for AE transfer learning training loss)
+EARLY_STOPPING = True
 LOSS_FUNC = torch.nn.BCELoss(reduction='mean')
 
 if(__name__=="__main__"):
@@ -84,8 +86,9 @@ if(__name__=="__main__"):
     # All the splits should be reproduciable with torch.manual_seed set in setup.py                                
     original_data = MNIST(root=f'Data/{TASK_DESCR}/', train=True, download=True, 
             transform=transforms.Compose([transforms.ToTensor(),
-                                            transforms.Normalize(mean=(0.1307,), std=(0.3081,)),
-                                            transforms.Lambda(lambda x: x.flatten())]))
+                                          transforms.Resize(size=(IMAGE_LENGTH, IMAGE_LENGTH)),
+                                          transforms.Normalize(mean=(0.1307,), std=(0.3081,)),
+                                          transforms.Lambda(lambda x: x.flatten())]))
     assert len(original_data) == 60000
     sourcetask_data, targettask_data = random_split(original_data, [SOURCETASK['Train']+SOURCETASK['Valid'], TARGETTASK['Train']+TARGETTASK['Valid']])
 
@@ -106,14 +109,14 @@ if(__name__=="__main__"):
             optim.Adam(regular_net.parameters(), lr=SOURCETASK['Learning_Rate']), \
             optim.Adam(transfer_net.parameters(), lr=SOURCETASK['Learning_Rate']), \
             optim.Adam(ae_transfer_net.parameters(), lr=SOURCETASK['Learning_Rate'])
-    regular_loss_min, transfer_loss_min, ae_transfer_loss_combined_min = np.inf, np.inf, np.inf
+    regular_best_point, transfer_best_point, ae_transfer_best_point = 0, 0, np.inf
     train_loss_eps, valid_loss_eps, valid_accuracies_eps = [], [], []
     for i in trange(1, SOURCETASK['Epochs']+1):
         regular_loss_ep, transfer_loss_ep, ae_transfer_loss_ep, ae_transfer_loss_combined_ep = 0, 0, 0, 0
         for j, (data, targets) in enumerate(train_loader):
-            assert data.size() == (SOURCETASK['Minibatch_Size'], 28*28) and \
+            assert data.size() == (SOURCETASK['Minibatch_Size'], INPUT_SIZE) and \
                    targets.size() == (SOURCETASK['Minibatch_Size'], ) 
-            targets = torch.tensor(targets==SOURCETASK['Task'], dtype=torch.float32)
+            targets = utils.convert_targets(targets, SOURCETASK)
             optimizer_regular.zero_grad()
             optimizer_transfer.zero_grad()
             optimizer_ae_transfer.zero_grad()
@@ -138,9 +141,9 @@ if(__name__=="__main__"):
             if (j+1) % min(50,n_minibatches) == 0:
                 # Validation
                 for data, targets in valid_loader: # only load up one batch
-                    assert data.size() == (SOURCETASK['Valid'], 28*28) and \
+                    assert data.size() == (SOURCETASK['Valid'], INPUT_SIZE) and \
                         targets.size() == (SOURCETASK['Valid'], )
-                    targets = torch.tensor(targets==SOURCETASK['Task'], dtype=torch.float32)                    
+                    targets = utils.convert_targets(targets, SOURCETASK)
                     with torch.no_grad():
                         predictions = regular_net.sourcetask(data.to(DEVICE))
                         regular_loss = LOSS_FUNC(predictions, targets.to(DEVICE)).item()
@@ -163,15 +166,15 @@ if(__name__=="__main__"):
                        ae_transfer_loss_ep/(j+1), ae_transfer_loss, ae_transfer_accuracy*100))
                 if EARLY_STOPPING:
                     # Early stopping based on validation losses
-                    if (regular_loss < regular_loss_min):
+                    if (regular_accuracy > regular_best_point):
                         regular_net.save_model()
-                        regular_loss_min = regular_loss
-                    if (transfer_loss < transfer_loss_min):
+                        regular_best_point = regular_accuracy
+                    if (transfer_accuracy > transfer_best_point):
                         transfer_net.save_model()
-                        transfer_loss_min = transfer_loss
-                    if (ae_transfer_loss_combined < ae_transfer_loss_combined_min):
+                        transfer_best_point = transfer_accuracy
+                    if (ae_transfer_loss_combined < ae_transfer_best_point):
                         ae_transfer_net.save_model()
-                        ae_transfer_loss_combined_min = ae_transfer_loss_combined    
+                        ae_transfer_best_point = ae_transfer_loss_combined    
                 else:
                     regular_net.save_model()
                     transfer_net.save_model()
@@ -200,14 +203,14 @@ if(__name__=="__main__"):
             optim.Adam(filter(lambda para: para.requires_grad, regular_net.parameters()), lr=TARGETTASK['Learning_Rate']), \
             optim.Adam(filter(lambda para: para.requires_grad, transfer_net.parameters()), lr=TARGETTASK['Learning_Rate']), \
             optim.Adam(filter(lambda para: para.requires_grad, ae_transfer_net.parameters()), lr=TARGETTASK['Learning_Rate'])
-    regular_loss_min, transfer_loss_min, ae_transfer_loss_min = np.inf, np.inf, np.inf
+    regular_best_point, transfer_best_point, ae_transfer_best_point = 0, 0, 0
     train_loss_eps, valid_loss_eps, valid_accuracies_eps = [], [], []
     for i in trange(1, TARGETTASK['Epochs']+1):
         regular_loss_ep, transfer_loss_ep, ae_transfer_loss_ep = 0, 0, 0
         for j, (data, targets) in enumerate(train_loader):
-            assert data.size() == (TARGETTASK['Minibatch_Size'], 28*28) and \
+            assert data.size() == (TARGETTASK['Minibatch_Size'], INPUT_SIZE) and \
                    targets.size() == (TARGETTASK['Minibatch_Size'], )
-            targets = torch.tensor(targets==TARGETTASK['Task'], dtype=torch.float32)
+            targets = utils.convert_targets(targets, TARGETTASK)                    
             optimizer_regular.zero_grad()
             optimizer_transfer.zero_grad()
             optimizer_ae_transfer.zero_grad()
@@ -228,11 +231,13 @@ if(__name__=="__main__"):
             transfer_loss_ep += transfer_loss.item()
             ae_transfer_loss_ep += ae_transfer_loss.item()
             if (j+1) % min(50,n_minibatches) == 0:
+                if i > 100:
+                    print("gets here")
                 # Validation
                 for data, targets in valid_loader: # only load up one batch
-                    assert data.size() == (TARGETTASK['Valid'], 28*28) and \
+                    assert data.size() == (TARGETTASK['Valid'], INPUT_SIZE) and \
                         targets.size() == (TARGETTASK['Valid'], )
-                    targets = torch.tensor(targets==TARGETTASK['Task'], dtype=torch.float32)                    
+                    targets = utils.convert_targets(targets, TARGETTASK)                    
                     with torch.no_grad():
                         predictions = regular_net.targettask(data.to(DEVICE))
                         regular_loss = LOSS_FUNC(predictions, targets.to(DEVICE)).item()
@@ -254,15 +259,15 @@ if(__name__=="__main__"):
                        ae_transfer_loss_ep/(j+1), ae_transfer_loss, ae_transfer_accuracy*100))
                 if EARLY_STOPPING:
                     # Early stopping based on validation losses
-                    if (regular_loss < regular_loss_min):
+                    if (regular_accuracy > regular_best_point):
                         regular_net.save_model()
-                        regular_loss_min = regular_loss
-                    if (transfer_loss < transfer_loss_min):
+                        regular_best_point = regular_accuracy
+                    if (transfer_accuracy > transfer_best_point):
                         transfer_net.save_model()
-                        transfer_loss_min = transfer_loss
-                    if (ae_transfer_loss < ae_transfer_loss_min):
+                        transfer_best_point = transfer_accuracy
+                    if (ae_transfer_accuracy > ae_transfer_best_point):
                         ae_transfer_net.save_model()
-                        ae_transfer_loss_combined_min = ae_transfer_loss_combined    
+                        ae_transfer_best_point = ae_transfer_accuracy    
                 else:
                     regular_net.save_model()
                     transfer_net.save_model()
