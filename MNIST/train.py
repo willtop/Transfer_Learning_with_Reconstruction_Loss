@@ -1,18 +1,15 @@
 # Training script for all the models
 
-from random import gammavariate
 import numpy as np
-from utils import FP_power_control, compute_SINRs, compute_rates
 import torch
 from torch.utils.data import DataLoader, random_split
-from torchvision.datasets import MNIST
-from torchvision import transforms
 import torch.nn as nn
 import torch.optim as optim
 from tqdm import trange
 import argparse
 import matplotlib.pyplot as plt
 from setup import *
+from utils import *
 from neural_nets import Regular_Net, Transfer_Net, Autoencoder_Transfer_Net
 
 
@@ -38,9 +35,16 @@ def plot_training_curves():
     axes[0][1].plot(valid_losses[:,2], 'r', label="AE Transfer Network")
     axes[0][1].plot(valid_losses[:,3], 'r--', label="AE Transfer Network Combined")
     axes[0][1].legend()
+    axes[0][2].set_xlabel("Epoches")
+    axes[0][2].set_ylabel("Validation Accuracies (Source Task)")
+    axes[0][2].plot(valid_accuracies[:,0], 'g', label="Regular Network")
+    axes[0][2].plot(valid_accuracies[:,1], 'b', label="Transfer Network")
+    axes[0][2].plot(valid_accuracies[:,2], 'r', label="AE Transfer Network")
+    axes[0][2].legend()
     # Plot for target task
-    train_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/train_losses_targetTask_{SETTING_STRING}.npy")
-    valid_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/valid_losses_targetTask_{SETTING_STRING}.npy")
+    train_losses = np.load(f"Trained_Models/{TASK_DESCR}/train_losses_targettask.npy")
+    valid_losses = np.load(f"Trained_Models/{TASK_DESCR}/valid_losses_targettask.npy")
+    valid_accuracies = np.load(f"Trained_Models/{TASK_DESCR}/valid_accuracies_targettask.npy")
     axes[1][0].set_xlabel("Epoches")
     axes[1][0].set_ylabel("Training Losses (Target Task)")
     axes[1][0].plot(train_losses[:,0], 'g', label="Regular Network")
@@ -53,8 +57,14 @@ def plot_training_curves():
     axes[1][1].plot(valid_losses[:,1], 'b', label="Transfer Network")
     axes[1][1].plot(valid_losses[:,2], 'r', label="AE Transfer Network")
     axes[1][1].legend()
+    axes[1][2].set_xlabel("Epoches")
+    axes[1][2].set_ylabel("Validation Accuracies (Target Task)")
+    axes[1][2].plot(valid_accuracies[:,0], 'g', label="Regular Network")
+    axes[1][2].plot(valid_accuracies[:,1], 'b', label="Transfer Network")
+    axes[1][2].plot(valid_accuracies[:,2], 'r', label="AE Transfer Network")
+    axes[1][2].legend()
     plt.show()
-    print("Finished plotting.")
+    print("Finished plotting!")
     return
 
 
@@ -69,17 +79,13 @@ if(__name__=="__main__"):
         plot_training_curves()
         exit(0)
 
-    print("Loading MNIST source data...")
-    source_data = MNIST(root='MNIST_Data/', train=True, download=True, 
-              transform=transforms.compose([transforms.ToTensor(),
-                                            transforms.Normalize(mean=(0.1307,), std=(0.3081,)),
-                                            transforms.Lambda(lambda x: x.flatten())], 
-              target_transform=transforms.Lambda(lambda y: int(y==SOURCETASK['Task']))))
 
     print(f"<<<<<<<<<<<<<<<<<<<<<<<Learn for {TASK_DESCR}>>>>>>>>>>>>>>>>>>>>>>")
     """ 
     Source-Task Training 
     """
+    print("Loading MNIST source data...")
+    source_data = load_source_data("SourceTaskTrain")
     regular_net, transfer_net, ae_transfer_net = \
             Regular_Net().to(DEVICE), Transfer_Net().to(DEVICE), Autoencoder_Transfer_Net().to(DEVICE)
     # The split should be reproduciable with torch.manual_seed set in setup.py                                
@@ -97,7 +103,7 @@ if(__name__=="__main__"):
     train_loss_eps, valid_loss_eps, valid_accuracies_eps = [], [], []
     for i in trange(1, SOURCETASK['Epochs']+1):
         regular_loss_ep, transfer_loss_ep, ae_transfer_loss_ep, ae_transfer_loss_combined_ep = 0, 0, 0, 0
-        for j, data, targets in enumerate(train_loader):
+        for j, (data, targets) in enumerate(train_loader):
             assert data.size() == (SOURCETASK['Minibatch_Size'], 28*28) and \
                    targets.size() == (SOURCETASK['Minibatch_Size'],)
             optimizer_regular.zero_grad()
@@ -105,13 +111,13 @@ if(__name__=="__main__"):
             optimizer_ae_transfer.zero_grad()
             # Regular Net
             predictions = regular_net.sourcetask(data.to(DEVICE))
-            regular_loss = LOSS_FUNC(torch.squeeze(predictions), targets.to(DEVICE))
+            regular_loss = LOSS_FUNC(predictions, targets.to(DEVICE))
             # Transfer Net
             predictions = transfer_net.sourcetask(data.to(DEVICE))
-            transfer_loss = LOSS_FUNC(torch.squeeze(predictions), targets.to(DEVICE))
+            transfer_loss = LOSS_FUNC(predictions, targets.to(DEVICE))
             # AutoEncoder Transfer Net
             predictions, reconstruct_loss = ae_transfer_net.sourcetask(data.to(DEVICE))
-            ae_transfer_loss = LOSS_FUNC(torch.squeeze(predictions), targets.to(DEVICE))
+            ae_transfer_loss = LOSS_FUNC(predictions, targets.to(DEVICE))
             ae_transfer_loss_combined = ae_transfer_loss + SOURCETASK['Loss_Combine_Weight'] * reconstruct_loss
             # Training and recording loss
             regular_loss.backward(); optimizer_regular.step()
@@ -127,17 +133,16 @@ if(__name__=="__main__"):
                     assert data.size() == (SOURCETASK['Valid'], 28*28) and \
                         targets.size() == (SOURCETASK['Valid'],)
                     with torch.no_grad():
-                        predictions = torch.squeeze(regular_net.sourcetask(data.to(DEVICE)))
+                        predictions = regular_net.sourcetask(data.to(DEVICE))
                         regular_loss = LOSS_FUNC(predictions, targets.to(DEVICE)).item()
-                        regular_accuracy = np.mean(predictions.round().detach().numpy() == targets.numpy())
-                        predictions = torch.squeeze(transfer_net.sourcetask(data.to(DEVICE)))
+                        regular_accuracy = np.mean(predictions.round().detach().cpu().numpy() == targets.numpy())
+                        predictions = transfer_net.sourcetask(data.to(DEVICE))
                         transfer_loss = LOSS_FUNC(predictions, targets.to(DEVICE)).item()
-                        transfer_accuracy = np.mean(predictions.round().detach().numpy() == targets.numpy())
+                        transfer_accuracy = np.mean(predictions.round().detach().cpu().numpy() == targets.numpy())
                         predictions, reconstruct_loss = ae_transfer_net.sourcetask(data.to(DEVICE))
-                        predictions = torch.squeeze(predictions)
                         ae_transfer_loss = LOSS_FUNC(predictions, targets.to(DEVICE)).item()
                         ae_transfer_loss_combined = ae_transfer_loss + SOURCETASK['Loss_Combine_Weight'] * reconstruct_loss.item()
-                        ae_transfer_accuracy = np.mean(predictions.round().detach().numpy() == targets.numpy())
+                        ae_transfer_accuracy = np.mean(predictions.round().detach().cpu().numpy() == targets.numpy())
                 train_loss_eps.append([regular_loss_ep/(j+1), transfer_loss_ep/(j+1), ae_transfer_loss_ep/(j+1), ae_transfer_loss_combined_ep/(j+1)])
                 valid_loss_eps.append([regular_loss, transfer_loss, ae_transfer_loss, ae_transfer_loss_combined])
                 valid_accuracies_eps.append([regular_accuracy, transfer_accuracy, ae_transfer_accuracy])
@@ -169,8 +174,9 @@ if(__name__=="__main__"):
     """ 
     Target-Task Training 
     """
+    source_data = load_source_data("TargetTaskTrain")
     # The splits should be reproduciable with torch.manual_seed set in setup.py                                
-    target_task_data = random_split(source_data, [TARGETTASK['Train']+TARGETTASK['Valid'], len(source_data)-(TARGETTASK['Train']+TARGETTASK['Valid'])])
+    target_task_data, _ = random_split(source_data, [TARGETTASK['Train']+TARGETTASK['Valid'], len(source_data)-(TARGETTASK['Train']+TARGETTASK['Valid'])])
     train_data, valid_data = random_split(target_task_data, [TARGETTASK['Train'], TARGETTASK['Valid']])
     train_loader = DataLoader(train_data, batch_size = TARGETTASK['Minibatch_Size'], shuffle=True)    
     valid_loader = DataLoader(valid_data, batch_size = len(valid_data), shuffle=False)
@@ -191,7 +197,7 @@ if(__name__=="__main__"):
     train_loss_eps, valid_loss_eps, valid_accuracies_eps = [], [], []
     for i in trange(1, TARGETTASK['Epochs']+1):
         regular_loss_ep, transfer_loss_ep, ae_transfer_loss_ep = 0, 0, 0
-        for j, data, targets in enumerate(train_loader):
+        for j, (data, targets) in enumerate(train_loader):
             assert data.size() == (TARGETTASK['Minibatch_Size'], 28*28) and \
                    targets.size() == (TARGETTASK['Minibatch_Size'],)
             optimizer_regular.zero_grad()
@@ -199,13 +205,13 @@ if(__name__=="__main__"):
             optimizer_ae_transfer.zero_grad()
             # Regular Net
             predictions = regular_net.targettask(data.to(DEVICE))
-            regular_loss = LOSS_FUNC(torch.squeeze(predictions), targets.to(DEVICE))
+            regular_loss = LOSS_FUNC(predictions, targets.to(DEVICE))
             # Transfer Net
             predictions = transfer_net.targettask(data.to(DEVICE))
-            transfer_loss = LOSS_FUNC(torch.squeeze(predictions), targets.to(DEVICE))
+            transfer_loss = LOSS_FUNC(predictions, targets.to(DEVICE))
             # AutoEncoder Transfer Net
             predictions = ae_transfer_net.targettask(data.to(DEVICE))
-            ae_transfer_loss = LOSS_FUNC(torch.squeeze(predictions), targets.to(DEVICE))
+            ae_transfer_loss = LOSS_FUNC(predictions, targets.to(DEVICE))
             # Training and recording loss
             regular_loss.backward(); optimizer_regular.step()
             transfer_loss.backward(); optimizer_transfer.step()
@@ -219,15 +225,15 @@ if(__name__=="__main__"):
                     assert data.size() == (TARGETTASK['Valid'], 28*28) and \
                         targets.size() == (TARGETTASK['Valid'],)
                     with torch.no_grad():
-                        predictions = torch.squeeze(regular_net.targettask(data.to(DEVICE)))
+                        predictions = regular_net.targettask(data.to(DEVICE))
                         regular_loss = LOSS_FUNC(predictions, targets.to(DEVICE)).item()
-                        regular_accuracy = np.mean(predictions.round().detach().numpy() == targets.numpy())
-                        predictions = torch.squeeze(transfer_net.targettask(data.to(DEVICE)))
+                        regular_accuracy = np.mean(predictions.round().detach().cpu().numpy() == targets.numpy())
+                        predictions = transfer_net.targettask(data.to(DEVICE))
                         transfer_loss = LOSS_FUNC(predictions, targets.to(DEVICE)).item()
-                        transfer_accuracy = np.mean(predictions.round().detach().numpy() == targets.numpy())
-                        predictions = torch.squeeze(ae_transfer_net.targettask(data.to(DEVICE)))
+                        transfer_accuracy = np.mean(predictions.round().detach().cpu().numpy() == targets.numpy())
+                        predictions = ae_transfer_net.targettask(data.to(DEVICE))
                         ae_transfer_loss = LOSS_FUNC(predictions, targets.to(DEVICE)).item()
-                        ae_transfer_accuracy = np.mean(predictions.round().detach().numpy() == targets.numpy())
+                        ae_transfer_accuracy = np.mean(predictions.round().detach().cpu().numpy() == targets.numpy())
                 train_loss_eps.append([regular_loss_ep/(j+1), transfer_loss_ep/(j+1), ae_transfer_loss_ep/(j+1)])
                 valid_loss_eps.append([regular_loss, transfer_loss, ae_transfer_loss])
                 valid_accuracies_eps.append([regular_accuracy, transfer_accuracy, ae_transfer_accuracy])

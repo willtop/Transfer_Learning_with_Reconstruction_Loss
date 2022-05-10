@@ -71,11 +71,11 @@ class Neural_Net(nn.Module):
     # Modules to compose different types of neural net
     def construct_feature_module(self):
         feature_module = nn.ModuleList()
-        feature_module.append(nn.Linear(N_LINKS*N_LINKS, 2*N_LINKS*N_LINKS))
+        feature_module.append(nn.Linear(N_LINKS*N_LINKS, int(1.5*N_LINKS*N_LINKS)))
         feature_module.append(nn.ReLU())
-        feature_module.append(nn.Linear(2*N_LINKS*N_LINKS, 2*N_LINKS*N_LINKS))
+        feature_module.append(nn.Linear(int(1.5*N_LINKS*N_LINKS), int(1.5*N_LINKS*N_LINKS)))
         feature_module.append(nn.ReLU())
-        feature_module.append(nn.Linear(2*N_LINKS*N_LINKS, self.feature_length))
+        feature_module.append(nn.Linear(int(1.5*N_LINKS*N_LINKS), self.feature_length))
         feature_module.append(nn.ReLU())
         return feature_module
     

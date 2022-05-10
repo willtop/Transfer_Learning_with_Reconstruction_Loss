@@ -15,10 +15,10 @@ if __name__ == '__main__':
         # Generate layouts for FP and save as testing data for GP
         g, _ = generate_D2D_channelGains(100)
         fp = FP_power_control(g)
-        np.save("Data/g_test_{}.npy".format(SETTING_STRING), g)
-        savemat("Data/g_test_{}.mat".format(SETTING_STRING), {'g': g})
-        input("Invoke matlab script and compute GP solutions. Press any key once finished")
-        GP_power_control()
+        # np.save("Data/g_test_{}.npy".format(SETTING_STRING), g)
+        # savemat("Data/g_test_{}.mat".format(SETTING_STRING), {'g': g})
+        # input("Invoke matlab script and compute GP solutions. Press any key once finished")
+        # GP_power_control()
         exit(0)
 
     if GENERATE_CHANNELS_SOURCETASK:

@@ -10,28 +10,31 @@ print("Using device: ", DEVICE)
 
 APPLICATION = 'MNIST'
 
-SourceTask_MNIST = {'Type': 'Source-Task',
+SourceTask_MNIST = {'Type': 'Source_Task',
   'Task': 1,
   'Fullname': 'MNIST Identify 1',
-  'Train': 56000,
-  'Valid': 4000,
-  'Minibatch_Size': 100,
-  'Epochs': 30,
-  'Learning_Rate': 1e-3,
+  'Train': 50000,
+  'Valid': 10000,
+  'Minibatch_Size': 500,
+  'Epochs': 10,
+  'Learning_Rate': 1e-4,
   'Loss_Combine_Weight': 1}
 TargetTask_MNIST = {'Type': 'Target_Task',
   'Task': 5,
   'Fullname': 'MNIST Identify 5',
-  'Train': 1000,
-  'Valid': 4000,
-  'Minibatch_Size': 100,
-  'Epochs': 100,
+  'Train': 100,
+  'Valid': 10000,
+  'Minibatch_Size': 50,
+  'Epochs': 500,
   'Learning_Rate': 1e-4}
+N_TEST_SAMPLES_MNIST = 10000
 
 if APPLICATION == 'MNIST':
     SOURCETASK = SourceTask_MNIST
     TARGETTASK = TargetTask_MNIST
     TASK_DESCR = f"MNIST_{SOURCETASK['Task']}-{TARGETTASK['Task']}"
+    INPUT_SIZE = 28*28
+    N_TEST_SAMPLES = N_TEST_SAMPLES_MNIST
 else:
     print(f"Invalid application {APPLICATION}!")
     exit(1)

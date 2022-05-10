@@ -10,10 +10,11 @@ from setup import *
 
 VISUALIZE_SOURCETASK = False
 VISUALIZE_TARGETTASK = True
+GP_INCLUDED = False
 
 if(__name__ =='__main__'):
     g = np.load("Data/g_test_{}.npy".format(SETTING_STRING))
-    assert np.shape(g) == (N_TEST_SAMPLES, N_LINKS, N_LINKS)
+    assert np.shape(g) == (N_TEST_SAMPLES, N_LINKS, N_LINKS), f"{np.shape(g)}"
     print(f"[D2D] Evaluate {SETTING_STRING} over {N_TEST_SAMPLES} layouts.")
 
     regular_net, transfer_net, ae_transfer_net = Regular_Net().to(DEVICE), Transfer_Net().to(DEVICE), Autoencoder_Transfer_Net().to(DEVICE)
@@ -26,7 +27,7 @@ if(__name__ =='__main__'):
             power_controls["FP"] = FP_power_control(g)
             plot_colors["FP"] = 'b'
             plot_linestyles["FP"] = '--' 
-        elif task['Task'] == "Min":
+        elif task['Task'] == "Min" and GP_INCLUDED:
             optimal_benchmark = "GP"
             # Geometric Programming
             power_controls["GP"] = GP_power_control()
