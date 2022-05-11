@@ -16,7 +16,7 @@ VISUALIZE_TARGETTASK = True
 if(__name__ =='__main__'):
     print(f"[D2D] Evaluate {TASK_DESCR} over {N_TEST_SAMPLES} test data.")
 
-    test_data = MNIST(root=f'Data/{TASK_DESCR}/', train=False, download=True, 
+    test_data = MNIST(root='Data/', train=False, download=True, 
             transform=transforms.Compose([transforms.ToTensor(),
                                           transforms.Resize(size=(IMAGE_LENGTH, IMAGE_LENGTH)),
                                           transforms.Normalize(mean=(0.1307,), std=(0.3081,)),
@@ -34,18 +34,18 @@ if(__name__ =='__main__'):
             accuracies = {}
             if "Source" in task['Type']:
                 predictions = regular_net.sourcetask(data.to(DEVICE))
-                accuracies["Regular Learning"] = np.mean(predictions.round().detach().cpu().numpy()==targets.numpy())
+                accuracies["Regular Learning"] = utils.compute_accuracy(predictions.detach().cpu(), targets)
                 predictions = transfer_net.sourcetask(data.to(DEVICE))
-                accuracies["Conventional Transfer Learning"] = np.mean(predictions.round().detach().cpu().numpy()==targets.numpy())
+                accuracies["Conventional Transfer Learning"] = utils.compute_accuracy(predictions.detach().cpu(), targets)
                 predictions, _ = ae_transfer_net.sourcetask(data.to(DEVICE))
-                accuracies["Transfer Learning with Reconstruction"] = np.mean(predictions.round().detach().cpu().numpy()==targets.numpy())
+                accuracies["Transfer Learning with Reconstruction"] = utils.compute_accuracy(predictions.detach().cpu(), targets)
             else:
                 predictions = regular_net.targettask(data.to(DEVICE))
-                accuracies["Regular Learning"] = np.mean(predictions.round().detach().cpu().numpy()==targets.numpy())
+                accuracies["Regular Learning"] = utils.compute_accuracy(predictions.detach().cpu(), targets)
                 predictions = transfer_net.targettask(data.to(DEVICE))
-                accuracies["Conventional Transfer Learning"] = np.mean(predictions.round().detach().cpu().numpy()==targets.numpy())
+                accuracies["Conventional Transfer Learning"] = utils.compute_accuracy(predictions.detach().cpu(), targets)
                 predictions = ae_transfer_net.targettask(data.to(DEVICE))
-                accuracies["Transfer Learning with Reconstruction"] = np.mean(predictions.round().detach().cpu().numpy()==targets.numpy())
+                accuracies["Transfer Learning with Reconstruction"] = utils.compute_accuracy(predictions.detach().cpu(), targets)
             
         print(f"{TASK_DESCR} {task['Type']} Accuracies on identifying {task['Task']}: ")
         for method_key, accuracy in accuracies.items():

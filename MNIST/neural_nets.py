@@ -41,21 +41,17 @@ class Neural_Net(nn.Module):
     # Modules to compose different types of neural net
     def construct_feature_module(self):
         feature_module = nn.ModuleList()
-        feature_module.append(nn.Linear(INPUT_SIZE, 150))
-        feature_module.append(nn.ReLU())
-        feature_module.append(nn.Linear(150, 100))
+        feature_module.append(nn.Linear(INPUT_SIZE, 100))
         feature_module.append(nn.ReLU())
         feature_module.append(nn.Linear(100, self.feature_length))
         feature_module.append(nn.ReLU())
         return feature_module
     
-    def construct_optimizer_module(self):
+    def construct_optimizer_module(self, output_dim):
         optimizer_module = nn.ModuleList()
-        optimizer_module.append(nn.Linear(self.feature_length, 10))
-        optimizer_module.append(nn.ReLU())
-        optimizer_module.append(nn.Linear(10, 1))
-        # predicting the probability of the class as 0~1
-        optimizer_module.append(nn.Sigmoid())
+        optimizer_module.append(nn.Linear(self.feature_length, output_dim))
+        # predicting the probability of the output_dim classes
+        optimizer_module.append(nn.Softmax(dim=1))
         return optimizer_module
 
     def _construct_model_path(self, model_type):
@@ -67,9 +63,9 @@ class Regular_Net(Neural_Net):
         self.model_type = "Regular"
         self.model_path = self._construct_model_path(self.model_type)
         self.sourcetask_feature_module = self.construct_feature_module()
-        self.sourcetask_optimizer_module = self.construct_optimizer_module()
+        self.sourcetask_optimizer_module = self.construct_optimizer_module(SOURCETASK['Output_Dim'])
         self.targettask_feature_module = self.construct_feature_module()
-        self.targettask_optimizer_module = self.construct_optimizer_module()
+        self.targettask_optimizer_module = self.construct_optimizer_module(TARGETTASK['Output_Dim'])
         self.load_model()
 
     def sourcetask(self, x):
@@ -77,14 +73,14 @@ class Regular_Net(Neural_Net):
             x = lyr(x)
         for lyr  in self.sourcetask_optimizer_module:
             x = lyr(x)
-        return torch.squeeze(x)
+        return x
 
     def targettask(self, x):
         for lyr in self.targettask_feature_module:
             x = lyr(x)
         for lyr  in self.targettask_optimizer_module:
             x = lyr(x)
-        return torch.squeeze(x)
+        return x
 
 
 class Transfer_Net(Neural_Net):
@@ -93,8 +89,8 @@ class Transfer_Net(Neural_Net):
         self.model_type = "Transfer"
         self.model_path = self._construct_model_path(self.model_type)
         self.feature_module = self.construct_feature_module()
-        self.sourcetask_optimizer_module = self.construct_optimizer_module()
-        self.targettask_optimizer_module = self.construct_optimizer_module()
+        self.sourcetask_optimizer_module = self.construct_optimizer_module(SOURCETASK['Output_Dim'])
+        self.targettask_optimizer_module = self.construct_optimizer_module(TARGETTASK['Output_Dim'])
         self.load_model()
 
     def sourcetask(self, x):
@@ -102,7 +98,7 @@ class Transfer_Net(Neural_Net):
             x = lyr(x)
         for lyr  in self.sourcetask_optimizer_module:
             x = lyr(x)
-        return torch.squeeze(x)
+        return x
 
     # freeze parameters for transfer learning
     def freeze_parameters(self):
@@ -116,7 +112,7 @@ class Transfer_Net(Neural_Net):
             x = lyr(x)
         for lyr  in self.targettask_optimizer_module:
             x = lyr(x)
-        return torch.squeeze(x)
+        return x
 
 class Autoencoder_Transfer_Net(Neural_Net):
     def __init__(self):
@@ -125,8 +121,8 @@ class Autoencoder_Transfer_Net(Neural_Net):
         self.model_path = self._construct_model_path(self.model_type)
         self.feature_module = self.construct_feature_module()
         self.decoder_module = self.construct_decoder_module()
-        self.sourcetask_optimizer_module = self.construct_optimizer_module()
-        self.targettask_optimizer_module = self.construct_optimizer_module()
+        self.sourcetask_optimizer_module = self.construct_optimizer_module(SOURCETASK['Output_Dim'])
+        self.targettask_optimizer_module = self.construct_optimizer_module(TARGETTASK['Output_Dim'])
         # for auto-encoder reconstruction loss
         self.reconstruct_loss_func = nn.MSELoss(reduction='mean')
         self.load_model()
@@ -150,7 +146,7 @@ class Autoencoder_Transfer_Net(Neural_Net):
         for lyr in self.sourcetask_optimizer_module:
             features = lyr(features)
         outputs = features
-        return torch.squeeze(outputs), self.reconstruct_loss_func(inputs, inputs_reconstructed)
+        return outputs, self.reconstruct_loss_func(inputs, inputs_reconstructed)
     
     # freeze parameters for transfer learning
     def freeze_parameters(self):
@@ -164,7 +160,7 @@ class Autoencoder_Transfer_Net(Neural_Net):
             x = lyr(x)
         for lyr in self.targettask_optimizer_module:
             x = lyr(x)
-        return torch.squeeze(x)
+        return x
 
 if __name__ == "__main__":
     ae_transfer_net = Autoencoder_Transfer_Net()
