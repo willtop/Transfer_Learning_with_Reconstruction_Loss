@@ -5,7 +5,7 @@ import torch
 from torch.utils.data import DataLoader, random_split
 import torch.nn as nn
 import torch.optim as optim
-from torchvision.datasets import MNIST
+from torchvision.datasets import MNIST, FashionMNIST
 from torchvision import transforms
 from tqdm import trange
 import argparse
@@ -84,10 +84,16 @@ if(__name__=="__main__"):
 
     # Load data (Don't transform targets here yet)
     # All the splits should be reproduciable with torch.manual_seed set in setup.py                                
-    original_data = MNIST(root='Data/', train=True, download=True, 
+    if APPLICATION == 'MNIST':
+        original_data = MNIST(root='Data/', train=True, download=True, 
             transform=transforms.Compose([transforms.ToTensor(),
                                           transforms.Resize(size=(IMAGE_LENGTH, IMAGE_LENGTH)),
                                           transforms.Normalize(mean=(0.1307,), std=(0.3081,)),
+                                          transforms.Lambda(lambda x: x.flatten())]))
+    else:
+        original_data = FashionMNIST(root='Data/', train=True, download=True, 
+            transform=transforms.Compose([transforms.ToTensor(),
+                                          transforms.Resize(size=(IMAGE_LENGTH, IMAGE_LENGTH)),
                                           transforms.Lambda(lambda x: x.flatten())]))
     assert len(original_data) == 60000
     sourcetask_data, targettask_data = random_split(original_data, [SOURCETASK['Train']+SOURCETASK['Valid'], TARGETTASK['Train']+TARGETTASK['Valid']])
@@ -96,7 +102,7 @@ if(__name__=="__main__"):
     """ 
     Source-Task Training 
     """
-    print("Loading MNIST source data...")
+    print(f"Loading {APPLICATION} source data...")
     regular_net, transfer_net, ae_transfer_net = \
             Regular_Net().to(DEVICE), Transfer_Net().to(DEVICE), Autoencoder_Transfer_Net().to(DEVICE)
     train_data, valid_data = random_split(sourcetask_data, [SOURCETASK['Train'], SOURCETASK['Valid']])

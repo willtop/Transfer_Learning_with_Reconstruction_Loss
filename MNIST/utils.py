@@ -5,7 +5,7 @@ def convert_targets(targets, task_obj):
            else task_obj['Output_Dim']-1 for target in targets])
     return (torch.nn.functional.one_hot(tmp, num_classes=task_obj['Output_Dim'])).to(dtype=torch.float32)
     
-# require targets to be one-hot encoding
+# require targets to be already-converted one-hot encoding
 def compute_accuracy(predictions, targets):
     assert targets.ndim == 2
     assert predictions.size() == targets.size()

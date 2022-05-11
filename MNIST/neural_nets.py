@@ -49,7 +49,9 @@ class Neural_Net(nn.Module):
     
     def construct_optimizer_module(self, output_dim):
         optimizer_module = nn.ModuleList()
-        optimizer_module.append(nn.Linear(self.feature_length, output_dim))
+        optimizer_module.append(nn.Linear(self.feature_length, 15))
+        optimizer_module.append(nn.ReLU())
+        optimizer_module.append(nn.Linear(15, output_dim))
         # predicting the probability of the output_dim classes
         optimizer_module.append(nn.Softmax(dim=1))
         return optimizer_module

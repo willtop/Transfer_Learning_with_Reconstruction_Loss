@@ -3,7 +3,7 @@
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
-from torchvision.datasets import MNIST
+from torchvision.datasets import MNIST, FashionMNIST
 from torchvision import transforms
 import matplotlib.pyplot as plt
 from neural_nets import Regular_Net, Transfer_Net, Autoencoder_Transfer_Net
@@ -16,10 +16,16 @@ VISUALIZE_TARGETTASK = True
 if(__name__ =='__main__'):
     print(f"[D2D] Evaluate {TASK_DESCR} over {N_TEST_SAMPLES} test data.")
 
-    test_data = MNIST(root='Data/', train=False, download=True, 
+    if APPLICATION == "MNIST":
+        test_data = MNIST(root='Data/', train=False, download=True, 
             transform=transforms.Compose([transforms.ToTensor(),
                                           transforms.Resize(size=(IMAGE_LENGTH, IMAGE_LENGTH)),
                                           transforms.Normalize(mean=(0.1307,), std=(0.3081,)),
+                                          transforms.Lambda(lambda x: x.flatten())]))
+    else:
+        test_data = FashionMNIST(root='Data/', train=False, download=True, 
+            transform=transforms.Compose([transforms.ToTensor(),
+                                          transforms.Resize(size=(IMAGE_LENGTH, IMAGE_LENGTH)),
                                           transforms.Lambda(lambda x: x.flatten())]))
     assert len(test_data) == N_TEST_SAMPLES
     data_loader = DataLoader(test_data, batch_size=len(test_data), shuffle=False)
