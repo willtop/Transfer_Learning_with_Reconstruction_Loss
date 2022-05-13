@@ -13,7 +13,7 @@ LAYOUT_SETTING = 'A'
 SourceTask_HarmonicMean = {'Type': 'Source-Task',
         'Task': 'Harmonic',
         'Fullname': 'Harmonic-Mean-Rate',
-        'Train': int(1e6),
+        'Train': int(5e5),
         'Valid': 5000,
         'Minibatch_Size': 2000,
         'Learning_Rate': 1e-3,
@@ -22,22 +22,22 @@ SourceTask_HarmonicMean = {'Type': 'Source-Task',
 TargetTask_Min = {'Type': 'Target-Task',
         'Task': 'Min',
         'Fullname': 'Min-Rate',
-        'Train': 1000,
+        'Train': 1500,
         'Valid': 5000,
         'Minibatch_Size': 100,
-        'Learning_Rate': 1e-4,
+        'Learning_Rate': 2e-5,
         'Epochs': 30000}
 TargetTask_Sum = {'Type': 'Target-Task',
         'Task': 'Sum',
         'Fullname': 'Sum-Rate',
-        'Train': 1000,
+        'Train': 1500,
         'Valid': 5000,
         'Minibatch_Size': 100,
-        'Learning_Rate': 1e-4,
+        'Learning_Rate': 2e-5,
         'Epochs': 30000}
 
 # Transfer Configuration on Task Specifications
-TRANSFER_CONFIGURE = 'I'
+TRANSFER_CONFIGURE = 'II'
 
 if TRANSFER_CONFIGURE == 'I':
     SOURCETASK = SourceTask_HarmonicMean
@@ -62,8 +62,8 @@ NOISE_POWER = np.power(10, ((_NOISE_dBm_Hz-30)/10)) * BANDWIDTH
 if LAYOUT_SETTING=='A':
     N_LINKS = 10
     FIELD_LENGTH = 150
-    SHORTEST_DIRECTLINK = 15
-    LONGEST_DIRECTLINK = 25
+    SHORTEST_DIRECTLINK = 5
+    LONGEST_DIRECTLINK = 15
 elif LAYOUT_SETTING=='B':
     N_LINKS = 15
     FIELD_LENGTH = 250
@@ -80,7 +80,7 @@ TX_POWER = np.power(10, (_TX_POWER_dBm - 30) / 10)
 SETTING_STRING = "N{}_L{}_{}-{}m".format(N_LINKS, FIELD_LENGTH, SHORTEST_DIRECTLINK, LONGEST_DIRECTLINK)
 SINR_GAP_dB = 0
 SINR_GAP = np.power(10, SINR_GAP_dB/10)
-ANTENNA_GAIN_DB = 5
+ANTENNA_GAIN_DB = 6
 
 
 # set random seed
