@@ -9,7 +9,7 @@ class Neural_Net(nn.Module):
     def __init__(self):
         super().__init__()
         # model architecture attribute
-        self.feature_length = int(N_LINKS * N_LINKS * 0.5)
+        self.feature_length = int(N_LINKS * N_LINKS * 0.75)
         # attributes to be overridden by subclasses
         self.model_type = None
         self.model_path = None
