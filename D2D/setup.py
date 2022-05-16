@@ -18,11 +18,11 @@ SourceTask_HarmonicMean = {'Type': 'Source-Task',
         'Minibatch_Size': 2000,
         'Learning_Rate': 1e-3,
         'Epochs': 100,
-        'Loss_Combine_Weight': 0.5}
+        'Loss_Combine_Weight': 0.3}
 TargetTask_Min = {'Type': 'Target-Task',
         'Task': 'Min',
         'Fullname': 'Min-Rate',
-        'Train': 1500,
+        'Train': 1000,
         'Valid': 5000,
         'Minibatch_Size': 100,
         'Learning_Rate': 2e-5,
@@ -30,14 +30,14 @@ TargetTask_Min = {'Type': 'Target-Task',
 TargetTask_Sum = {'Type': 'Target-Task',
         'Task': 'Sum',
         'Fullname': 'Sum-Rate',
-        'Train': 1500,
+        'Train': 2000,
         'Valid': 5000,
         'Minibatch_Size': 100,
         'Learning_Rate': 2e-5,
         'Epochs': 30000}
 
 # Transfer Configuration on Task Specifications
-TRANSFER_CONFIGURE = 'II'
+TRANSFER_CONFIGURE = 'I'
 
 if TRANSFER_CONFIGURE == 'I':
     SOURCETASK = SourceTask_HarmonicMean
@@ -60,10 +60,10 @@ WAVELENGTH = 2.998e8/CARRIER_FREQUENCY
 _NOISE_dBm_Hz = -145
 NOISE_POWER = np.power(10, ((_NOISE_dBm_Hz-30)/10)) * BANDWIDTH
 if LAYOUT_SETTING=='A':
-    N_LINKS = 10
-    FIELD_LENGTH = 150
+    N_LINKS = 15
+    FIELD_LENGTH = 200
     SHORTEST_DIRECTLINK = 5
-    LONGEST_DIRECTLINK = 15
+    LONGEST_DIRECTLINK = 30
 elif LAYOUT_SETTING=='B':
     N_LINKS = 15
     FIELD_LENGTH = 250
@@ -72,7 +72,7 @@ elif LAYOUT_SETTING=='B':
 else:
     print(f"Wrong Layout Setting {LAYOUT_SETTING}!")
     exit(1)
-SHORTEST_CROSSLINK = 5
+SHORTEST_CROSSLINK = 3
 TX_HEIGHT = 1.5
 RX_HEIGHT = 1.5
 _TX_POWER_dBm = 30
