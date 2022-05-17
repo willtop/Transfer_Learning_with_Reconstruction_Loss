@@ -150,10 +150,10 @@ def GP_power_control():
             SETTING_STRING, np.mean(pc)*100, np.mean(convert_SINRs_to_dB(np.min(sinrs,axis=1))), np.mean(convert_SINRs_to_dB(np.min(sinrs,axis=1))>0)*100))
     return pc
 
-def visualize_importance_weights(weights_sourceTask, weights_targetTask):
-    plt.title("Visualize two sets of importance weights")
-    plt.plot(np.arange(1,N_LINKS+1), weights_sourceTask, 'r', label="Importance weights source task")
-    plt.plot(np.arange(1,N_LINKS+1), weights_targetTask, 'b--', linewidth=1.5, label="Importance weights target task")
-    plt.legend()
-    plt.show()
+
+def plot_label_direct_channels(ax):
+    idxs = np.eye(N_LINKS).flatten()
+    for i in range(N_LINKS ** 2):
+        if idxs[i] == 1:
+            ax.axvline(x=i, ymin=0, c='y', linestyle='--', linewidth=0.7)
     return

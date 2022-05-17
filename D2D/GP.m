@@ -5,10 +5,10 @@ clc
 % D2D Environment settings
 SETTING = 'A';
 if SETTING == 'A'
-    N_LINKS = 15;
-    FIELD_LENGTH = 200;
-    SHORTEST_DIRECTLINK = 5;
-    LONGEST_DIRECTLINK = 30;
+    N_LINKS = 10;
+    FIELD_LENGTH = 150;
+    SHORTEST_DIRECTLINK = 10;
+    LONGEST_DIRECTLINK = 20;
 elseif SETTING == 'B'
     N_LINKS = 15;
     FIELD_LENGTH = 250;

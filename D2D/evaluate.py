@@ -8,8 +8,7 @@ from neural_nets import Regular_Net, Transfer_Net, Autoencoder_Transfer_Net
 from utils import *
 from setup import *
 
-VISUALIZE_SOURCETASK = False
-VISUALIZE_TARGETTASK = True
+VISUALIZE_ALLOCATIONS = True
 GP_INCLUDED = False
 
 if(__name__ =='__main__'):
@@ -18,19 +17,31 @@ if(__name__ =='__main__'):
     print(f"[D2D] Evaluate {SETTING_STRING} over {N_TEST_SAMPLES} layouts.")
 
     regular_net, transfer_net, ae_transfer_net = Regular_Net().to(DEVICE), Transfer_Net().to(DEVICE), Autoencoder_Transfer_Net().to(DEVICE)
+    power_controls, plot_colors, plot_linestyles, rates_all = {}, {}, {}, {}
+    plot_colors["Regular Learning"] = 'm'
+    plot_linestyles["Regular Learning"] = '--'
+    plot_colors["Conventional Transfer Learning"] = 'g'
+    plot_linestyles["Conventional Transfer Learning"] = '-.'
+    plot_colors["Autoencoder Transfer Learning"] = 'r'
+    plot_linestyles["Autoencoder Transfer Learning"] = '-'
+    plot_colors["Random Power"] = 'k'
+    plot_linestyles["Random Power"] = ':'
+    plot_colors["Full Power"] = 'y'
+    plot_linestyles["Full Power"] = ':'
+
     for task in [SOURCETASK, TARGETTASK]:
         print(f"Evaluating {task['Type']}: {task['Task']}...")
-        power_controls, plot_colors, plot_linestyles = {}, {}, {}
+        power_controls[task['Type']] = {}
         if task['Task'] == "Sum":
             optimal_benchmark = "FP"
             # Fractional Programming
-            power_controls["FP"] = FP_power_control(g)
+            power_controls[task['Type']]["FP"] = FP_power_control(g)
             plot_colors["FP"] = 'b'
             plot_linestyles["FP"] = '--' 
         elif task['Task'] == "Min" and GP_INCLUDED:
             optimal_benchmark = "GP"
             # Geometric Programming
-            power_controls["GP"] = GP_power_control()
+            power_controls[task['Type']]["GP"] = GP_power_control()
             plot_colors["GP"] = 'b'
             plot_linestyles["GP"] = '--'
         else:
@@ -38,45 +49,37 @@ if(__name__ =='__main__'):
         # Deep Learning methods
         if task['Type'] == "Source-Task":
             pc, _ = regular_net.sourceTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
-            power_controls["Regular Learning"] = pc.detach().cpu().numpy()
+            power_controls[task['Type']]["Regular Learning"] = pc.detach().cpu().numpy()
             pc, _ = transfer_net.sourceTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
-            power_controls["Conventional Transfer Learning"] = pc.detach().cpu().numpy()
+            power_controls[task['Type']]["Conventional Transfer Learning"] = pc.detach().cpu().numpy()
             pc, _, _ = ae_transfer_net.sourceTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
-            power_controls["Autoencoder Transfer Learning"] = pc.detach().cpu().numpy()
+            power_controls[task['Type']]["Autoencoder Transfer Learning"] = pc.detach().cpu().numpy()
         else:
             pc, _ = regular_net.targetTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
-            power_controls["Regular Learning"] = pc.detach().cpu().numpy()
+            power_controls[task['Type']]["Regular Learning"] = pc.detach().cpu().numpy()
             pc, _ = transfer_net.targetTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
-            power_controls["Conventional Transfer Learning"] = pc.detach().cpu().numpy()
+            power_controls[task['Type']]["Conventional Transfer Learning"] = pc.detach().cpu().numpy()
             pc, _ = ae_transfer_net.targetTask_powerControl(torch.tensor(g, dtype=torch.float32).to(DEVICE))
-            power_controls["Autoencoder Transfer Learning"] = pc.detach().cpu().numpy()
-        plot_colors["Regular Learning"] = 'm'
-        plot_linestyles["Regular Learning"] = '--'
-        plot_colors["Conventional Transfer Learning"] = 'g'
-        plot_linestyles["Conventional Transfer Learning"] = '-.'
-        plot_colors["Autoencoder Transfer Learning"] = 'r'
-        plot_linestyles["Autoencoder Transfer Learning"] = '-'
+            power_controls[task['Type']]["Autoencoder Transfer Learning"] = pc.detach().cpu().numpy()
+        
         # Trivial Benchmarks
-        power_controls["Random Power"] = np.random.uniform(size=[N_TEST_SAMPLES, N_LINKS])
-        plot_colors["Random Power"] = 'k'
-        plot_linestyles["Random Power"] = ':'
-        power_controls["Full Power"] = np.ones(shape=[N_TEST_SAMPLES, N_LINKS], dtype=float)
-        plot_colors["Full Power"] = 'y'
-        plot_linestyles["Full Power"] = ':'
+        power_controls[task['Type']]["Random Power"] = np.random.uniform(size=[N_TEST_SAMPLES, N_LINKS])
+        power_controls[task['Type']]["Full Power"] = np.ones(shape=[N_TEST_SAMPLES, N_LINKS], dtype=float)
+        
 
         print(f"Power Allocation Percentages on {task['Type']} {task['Task']}: ")
-        for method_key, power_percentages in power_controls.items():
+        for method_key, power_percentages in power_controls[task['Type']].items():
             print("[{}]: {:.1f}%;".format(method_key, np.mean(power_percentages)*100), end="")
         print("\n")
 
         print(f"{task['Type']} {task['Task']} Performances: ")
-        sinrs_all, rates_all, objectives = {}, {}, {}
-        for method_key, power_percentages in power_controls.items():
+        sinrs_all, rates_all[task['Type']], objectives = {}, {}, {}
+        for method_key, power_percentages in power_controls[task['Type']].items():
             sinrs = compute_SINRs(power_percentages, g)
             rates = compute_rates(sinrs)
             assert np.shape(sinrs) == np.shape(rates) == (N_TEST_SAMPLES, N_LINKS)
             sinrs_all[method_key] = sinrs
-            rates_all[method_key] = rates
+            rates_all[task['Type']][method_key] = rates
             if task['Task'] == 'Sum':
                 objectives[method_key] = np.sum(rates, axis=1)
             elif task['Task'] == 'Min':
@@ -126,34 +129,48 @@ if(__name__ =='__main__'):
         plt.yticks(np.linspace(start=0, stop=1, num=5), ["{}%".format(int(i*100)) for i in np.linspace(start=0, stop=1, num=5)], fontsize=21)
         plt.grid(linestyle="dotted")
         plt.ylim(bottom=0)
-        for method_key in power_controls.keys():
+        for method_key in power_controls[SOURCETASK['Type']].keys():
             plt.plot(np.sort(objectives[method_key])/1e6, np.arange(1,N_TEST_SAMPLES+1)/N_TEST_SAMPLES, color=plot_colors[method_key], linestyle=plot_linestyles[method_key], linewidth=2.0, label=method_key)
         plt.xlim(left=lowerbound_plot/1e6, right=upperbound_plot/1e6)
         plt.legend(prop={'size':20}, loc='lower right')
         plt.subplots_adjust(left=0.1, right=0.95, bottom=0.1, top=0.95)
         plt.show()   
 
-        # Visualize power control solutions and achieved rates for selected layouts
-        if (task['Type']=="Source-Task" and VISUALIZE_SOURCETASK) or (task['Type']=="Target-Task" and VISUALIZE_TARGETTASK):
-            # If optimal benchmark is regular learning, then put a set to remove duplicate
-            methods_plotted = set([optimal_benchmark, "Regular Learning", "Conventional Transfer Learning", "Autoencoder Transfer Learning", "Random Power"])
-            rand_idxes = np.random.randint(N_TEST_SAMPLES, size=3)    
-            for id in rand_idxes:
-                fig, axs = plt.subplots(3,1)
-                fig.suptitle(f"{task['Fullname']} Test Layout #{id}")
-                axs = axs.flatten()
-                # plot channels
-                axs[0].set_title("Channels")
-                axs[0].plot(g[id].flatten())
-                # plot power allocations
-                axs[1].set_title("Power Allocations")
-                for method_key in methods_plotted:
-                    axs[1].plot(np.arange(1, N_LINKS+1), power_controls[method_key][id], label=method_key)
-                axs[1].legend()
-                # plot achieved rates
-                axs[2].set_title("Link Rate")
-                for method_key in methods_plotted:
-                    axs[2].plot(np.arange(1, N_LINKS+1), rates_all[method_key][id], label=method_key)
-                axs[2].legend()
-                plt.show()
+    # Visualize power control solutions and achieved rates for selected layouts
+    if VISUALIZE_ALLOCATIONS:
+        rand_idxes = np.random.randint(N_TEST_SAMPLES, size=3)    
+        for id in rand_idxes:
+            fig, axs = plt.subplots(5,4)
+            fig.suptitle(f"{SOURCETASK['Fullname']}-{TARGETTASK['Fullname']} Test Layout #{id}")
+            # plot channels
+            axs[0][0].set_title("Channels")
+            axs[0][0].plot(g[id].flatten())
+            plot_label_direct_channels(axs[0][0])
+            # plot for source task
+            if SOURCETASK['Task'] == "Sum":
+                optimal_benchmark = "FP" 
+            elif SOURCETASK['Task'] == "Min" and GP_INCLUDED:
+                optimal_benchmark = "GP"
+            else:
+                optimal_benchmark = "Regular Learning"
+            methods_plotted = set([optimal_benchmark, "Regular Learning", "Conventional Transfer Learning", "Autoencoder Transfer Learning"])
+            for i, method_key in enumerate(methods_plotted):
+                axs[1][i].plot(np.arange(1, N_LINKS+1), power_controls[SOURCETASK['Type']][method_key][id], label="{}_pc".format(method_key))
+                axs[1][i].legend()
+                axs[2][i].plot(np.arange(1, N_LINKS+1), rates_all[SOURCETASK['Type']][method_key][id], label="{}_rates".format(method_key))
+                axs[2][i].legend()
+            # plot for target task
+            if TARGETTASK['Task'] == "Sum":
+                optimal_benchmark = "FP" 
+            elif TARGETTASK['Task'] == "Min" and GP_INCLUDED:
+                optimal_benchmark = "GP"
+            else:
+                optimal_benchmark = "Regular Learning"
+            methods_plotted = set([optimal_benchmark, "Regular Learning", "Conventional Transfer Learning", "Autoencoder Transfer Learning"])
+            for i, method_key in enumerate(methods_plotted):
+                axs[3][i].plot(np.arange(1, N_LINKS+1), power_controls[TARGETTASK['Type']][method_key][id], label="{}_pc".format(method_key))
+                axs[3][i].legend()
+                axs[4][i].plot(np.arange(1, N_LINKS+1), rates_all[TARGETTASK['Type']][method_key][id], label="{}_rates".format(method_key))
+                axs[4][i].legend()
+            plt.show()
     print("Evaluation Finished Successfully!")

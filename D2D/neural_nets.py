@@ -81,9 +81,9 @@ class Neural_Net(nn.Module):
     
     def construct_optimizer_module(self):
         optimizer_module = nn.ModuleList()
-        optimizer_module.append(nn.Linear(self.feature_length, int(1.5*N_LINKS)))
+        optimizer_module.append(nn.Linear(self.feature_length, 2*N_LINKS))
         optimizer_module.append(nn.ReLU())
-        optimizer_module.append(nn.Linear(int(1.5*N_LINKS), N_LINKS))
+        optimizer_module.append(nn.Linear(2*N_LINKS, N_LINKS))
         optimizer_module.append(nn.ReLU())
         optimizer_module.append(nn.Linear(N_LINKS, N_LINKS))
         # with power control output being 0~1

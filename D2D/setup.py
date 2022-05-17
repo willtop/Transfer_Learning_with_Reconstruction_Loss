@@ -16,9 +16,9 @@ SourceTask_HarmonicMean = {'Type': 'Source-Task',
         'Train': int(5e5),
         'Valid': 5000,
         'Minibatch_Size': 2000,
-        'Learning_Rate': 1e-3,
-        'Epochs': 100,
-        'Loss_Combine_Weight': 0.3}
+        'Learning_Rate': 5e-4,
+        'Epochs': 150,
+        'Loss_Combine_Weight': 0.2}
 TargetTask_Min = {'Type': 'Target-Task',
         'Task': 'Min',
         'Fullname': 'Min-Rate',
@@ -26,11 +26,11 @@ TargetTask_Min = {'Type': 'Target-Task',
         'Valid': 5000,
         'Minibatch_Size': 100,
         'Learning_Rate': 2e-5,
-        'Epochs': 30000}
+        'Epochs': 40000}
 TargetTask_Sum = {'Type': 'Target-Task',
         'Task': 'Sum',
         'Fullname': 'Sum-Rate',
-        'Train': 2000,
+        'Train': 1500,
         'Valid': 5000,
         'Minibatch_Size': 100,
         'Learning_Rate': 2e-5,
@@ -55,13 +55,13 @@ assert SOURCETASK['Train'] % SOURCETASK['Minibatch_Size'] == 0 and \
 
 # millimeter wave environment settings
 BANDWIDTH = 5e6
-CARRIER_FREQUENCY = 50e9 # 50GHz carrier frequency for millimeter wave
+CARRIER_FREQUENCY = 50e9 
 WAVELENGTH = 2.998e8/CARRIER_FREQUENCY
-_NOISE_dBm_Hz = -145
+_NOISE_dBm_Hz = -150
 NOISE_POWER = np.power(10, ((_NOISE_dBm_Hz-30)/10)) * BANDWIDTH
 if LAYOUT_SETTING=='A':
-    N_LINKS = 15
-    FIELD_LENGTH = 200
+    N_LINKS = 10
+    FIELD_LENGTH = 150
     SHORTEST_DIRECTLINK = 5
     LONGEST_DIRECTLINK = 30
 elif LAYOUT_SETTING=='B':

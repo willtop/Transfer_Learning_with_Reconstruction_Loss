@@ -1,19 +1,25 @@
 # This script contains the generator code for producing wireless network channels and sum-rate/min-rate targets
 
 import numpy as np
+import matplotlib.pyplot as plt
 from scipy.io import savemat
 from utils import *
 from setup import *
 
 CHECK_SETTING = False
-GENERATE_CHANNELS_SOURCETASK = False
+GENERATE_CHANNELS_SOURCETASK = True
 GENERATE_CHANNELS_TARGETTASK = True
-GENERATE_CHANNELS_TEST = False
+GENERATE_CHANNELS_TEST = True
 
 if __name__ == '__main__':
     if CHECK_SETTING:
         # Generate layouts for FP and save as testing data for GP
         g, _ = generate_D2D_channelGains(100)
+        # plot some layouts
+        for i in range(3):
+            plt.plot(g[i].flatten())
+            plot_label_direct_channels(plt.gca())
+            plt.show()
         fp = FP_power_control(g)
         np.save("Data/g_test_{}.npy".format(SETTING_STRING), g)
         savemat("Data/g_test_{}.mat".format(SETTING_STRING), {'g': g})
