@@ -27,15 +27,19 @@ TARGETTASK = {'Type': 'Target-Task',
         'Train': 1000,
         'Valid': 5000,
         'Minibatch_Size': 100,
-        'Learning_Rate': 2e-5,
-        'Epochs': 30000}
+        'Learning_Rate': None,
+        'Epochs': None}
 
 if TRANSFER_CONFIGURE == 'I':
     SOURCETASK['Task'] = 'Sum-Rate'
     TARGETTASK['Task'] = 'Min-Rate'
+    TARGETTASK['Learning_Rate'] = 2e-5
+    TARGETTASK['Epochs'] = 20000
 else:
     SOURCETASK['Task'] = 'Min-Rate'
     TARGETTASK['Task'] = 'Sum-Rate'
+    TARGETTASK['Learning_Rate'] = 1e-5
+    TARGETTASK['Epochs'] = 10000
 N_TEST_SAMPLES = 2000
 
 assert SOURCETASK['Train'] % SOURCETASK['Minibatch_Size'] == 0 and \
@@ -51,7 +55,7 @@ if LAYOUT_SETTING=='A':
     N_LINKS = 10
     FIELD_LENGTH = 150
     SHORTEST_DIRECTLINK = 5
-    LONGEST_DIRECTLINK = 30
+    LONGEST_DIRECTLINK = 25
 elif LAYOUT_SETTING=='B':
     N_LINKS = 15
     FIELD_LENGTH = 250
