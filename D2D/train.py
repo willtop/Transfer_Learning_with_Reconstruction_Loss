@@ -18,8 +18,8 @@ def plot_training_curves():
     fig, axes = plt.subplots(2,2)
     fig.suptitle(f"Loss over D2D networks {SETTING_STRING}")
     # Plot for source task
-    train_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/train_losses_sourceTask_{SETTING_STRING}.npy")
-    valid_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/valid_losses_sourceTask_{SETTING_STRING}.npy")
+    train_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/train_losses_sourceTask_{SETTING_STRING}.npy")
+    valid_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/valid_losses_sourceTask_{SETTING_STRING}.npy")
     axes[0][0].set_xlabel("Epoches")
     axes[0][0].set_ylabel("Training Losses (Source Task)")
     axes[0][0].plot(train_losses[:,0], 'g', label="Regular Network")
@@ -35,8 +35,8 @@ def plot_training_curves():
     axes[0][1].plot(valid_losses[:,3], 'r--', label="AE Transfer Network Combined")
     axes[0][1].legend()
     # Plot for target task
-    train_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/train_losses_targetTask_{SETTING_STRING}.npy")
-    valid_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/valid_losses_targetTask_{SETTING_STRING}.npy")
+    train_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/train_losses_targetTask_{SETTING_STRING}.npy")
+    valid_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/valid_losses_targetTask_{SETTING_STRING}.npy")
     axes[1][0].set_xlabel("Epoches")
     axes[1][0].set_ylabel("Training Losses (Target Task)")
     axes[1][0].plot(train_losses[:,0], 'g', label="Regular Network")
@@ -74,7 +74,7 @@ if(__name__=="__main__"):
     """ 
     Source-Task Training 
     """
-    print(f"<<<<<<<<<<<<<<<<<<<<<<<[{SOURCETASK['Fullname']}]->[{TARGETTASK['Fullname']}]>>>>>>>>>>>>>>>>>>>>>>")
+    print(f"<<<<<<<<<<<<<<<<<<<<<<<[{SOURCETASK['Task']}]->[{TARGETTASK['Task']}]>>>>>>>>>>>>>>>>>>>>>>")
     regular_net, transfer_net, ae_transfer_net = \
             Regular_Net().to(DEVICE), Transfer_Net().to(DEVICE), Autoencoder_Transfer_Net().to(DEVICE)
     print("[Source Task] Loading data...")
@@ -145,8 +145,8 @@ if(__name__=="__main__"):
                     regular_net.save_model()
                     transfer_net.save_model()
                     ae_transfer_net.save_model()
-                np.save(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/train_losses_sourceTask_{SETTING_STRING}.npy", np.array(train_loss_eps))
-                np.save(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/valid_losses_sourceTask_{SETTING_STRING}.npy", np.array(valid_loss_eps))
+                np.save(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/train_losses_sourceTask_{SETTING_STRING}.npy", np.array(train_loss_eps))
+                np.save(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/valid_losses_sourceTask_{SETTING_STRING}.npy", np.array(valid_loss_eps))
 
     """ 
     Target Task Training
@@ -221,7 +221,7 @@ if(__name__=="__main__"):
             regular_net.save_model()
             transfer_net.save_model()
             ae_transfer_net.save_model()
-        np.save(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/train_losses_targetTask_{SETTING_STRING}.npy", np.array(train_loss_eps))
-        np.save(f"Trained_Models/{SOURCETASK['Task']}-{TARGETTASK['Task']}/valid_losses_targetTask_{SETTING_STRING}.npy", np.array(valid_loss_eps))
+        np.save(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/train_losses_targetTask_{SETTING_STRING}.npy", np.array(train_loss_eps))
+        np.save(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/valid_losses_targetTask_{SETTING_STRING}.npy", np.array(valid_loss_eps))
 
-    print(f"[{SOURCETASK['Fullname']}]->[{TARGETTASK['Fullname']}] Training finished!")
+    print(f"[{SOURCETASK['Task']}]->[{TARGETTASK['Task']}] Training finished!")

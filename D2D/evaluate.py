@@ -32,13 +32,13 @@ if(__name__ =='__main__'):
     for task in [SOURCETASK, TARGETTASK]:
         print(f"Evaluating {task['Type']}: {task['Task']}...")
         power_controls[task['Type']] = {}
-        if task['Task'] == "Sum":
+        if task['Task'] == "Sum-Rate":
             optimal_benchmark = "FP"
             # Fractional Programming
             power_controls[task['Type']]["FP"] = FP_power_control(g)
             plot_colors["FP"] = 'b'
             plot_linestyles["FP"] = '--' 
-        elif task['Task'] == "Min" and GP_INCLUDED:
+        elif task['Task'] == "Min-Rate" and GP_INCLUDED:
             optimal_benchmark = "GP"
             # Geometric Programming
             power_controls[task['Type']]["GP"] = GP_power_control()
@@ -80,15 +80,10 @@ if(__name__ =='__main__'):
             assert np.shape(sinrs) == np.shape(rates) == (N_TEST_SAMPLES, N_LINKS)
             sinrs_all[method_key] = sinrs
             rates_all[task['Type']][method_key] = rates
-            if task['Task'] == 'Sum':
+            if task['Task'] == 'Sum-Rate':
                 objectives[method_key] = np.sum(rates, axis=1)
-            elif task['Task'] == 'Min':
-                objectives[method_key] = np.min(rates, axis=1)
-            elif task['Task'] == 'Harmonic':
-                objectives[method_key] = N_LINKS / np.sum(1/(rates/1e6), axis=1)
             else:
-                print(f"Invalid task type: {task['Task']}! Exiting ...")
-                exit(1)
+                objectives[method_key] = np.min(rates, axis=1)
             assert np.shape(objectives[method_key]) == (N_TEST_SAMPLES, )
         
         # Ensure SINR mostly at positive decibels
@@ -100,13 +95,7 @@ if(__name__ =='__main__'):
 
         for method_key, objective in objectives.items():
             # Different statistics monitored for different tasks
-            if task['Task'] in ["Sum", "Min"]:
-                print("[{}]: {:.3f}Mbps;".format(method_key, np.mean(objective)/1e6), end="")
-            elif task['Task'] == "Harmonic":
-                print("[{}]: {:.3f}Mbps;".format(method_key, np.mean(objective)), end="")
-            else:
-                print(f"Invalid task {task['Task']}! Exiting...")
-                exit(1)
+            print("[{}]: {:.3f}Mbps;".format(method_key, np.mean(objective)/1e6), end="")
         print("\n")
         for method_key, objective in objectives.items():
             if method_key == optimal_benchmark:
@@ -123,13 +112,13 @@ if(__name__ =='__main__'):
             upperbound_plot = max(upperbound_plot, np.percentile(val,q=90, interpolation="lower"))
 
         fig = plt.figure()
-        plt.xlabel(f"{task['Type']} {task['Fullname']} (Mbps)", fontsize=20)
-        plt.ylabel(f"Cumulative Distribution of {task['Fullname']} Values", fontsize=20)
+        plt.xlabel(f"{task['Type']} {task['Task']} (Mbps)", fontsize=20)
+        plt.ylabel(f"Cumulative Distribution of {task['Task']} Values", fontsize=20)
         plt.xticks(fontsize=21)
         plt.yticks(np.linspace(start=0, stop=1, num=5), ["{}%".format(int(i*100)) for i in np.linspace(start=0, stop=1, num=5)], fontsize=21)
         plt.grid(linestyle="dotted")
         plt.ylim(bottom=0)
-        for method_key in power_controls[SOURCETASK['Type']].keys():
+        for method_key in power_controls[task['Type']].keys():
             plt.plot(np.sort(objectives[method_key])/1e6, np.arange(1,N_TEST_SAMPLES+1)/N_TEST_SAMPLES, color=plot_colors[method_key], linestyle=plot_linestyles[method_key], linewidth=2.0, label=method_key)
         plt.xlim(left=lowerbound_plot/1e6, right=upperbound_plot/1e6)
         plt.legend(prop={'size':20}, loc='lower right')
@@ -141,15 +130,15 @@ if(__name__ =='__main__'):
         rand_idxes = np.random.randint(N_TEST_SAMPLES, size=3)    
         for id in rand_idxes:
             fig, axs = plt.subplots(5,4)
-            fig.suptitle(f"{SOURCETASK['Fullname']}-{TARGETTASK['Fullname']} Test Layout #{id}")
+            fig.suptitle(f"{SOURCETASK['Task']}-{TARGETTASK['Task']} Test Layout #{id}")
             # plot channels
             axs[0][0].set_title("Channels")
             axs[0][0].plot(g[id].flatten())
             plot_label_direct_channels(axs[0][0])
             # plot for source task
-            if SOURCETASK['Task'] == "Sum":
+            if SOURCETASK['Task'] == "Sum-Rate":
                 optimal_benchmark = "FP" 
-            elif SOURCETASK['Task'] == "Min" and GP_INCLUDED:
+            elif SOURCETASK['Task'] == "Min-Rate" and GP_INCLUDED:
                 optimal_benchmark = "GP"
             else:
                 optimal_benchmark = "Regular Learning"
@@ -160,9 +149,9 @@ if(__name__ =='__main__'):
                 axs[2][i].plot(np.arange(1, N_LINKS+1), rates_all[SOURCETASK['Type']][method_key][id], label="{}_rates".format(method_key))
                 axs[2][i].legend()
             # plot for target task
-            if TARGETTASK['Task'] == "Sum":
+            if TARGETTASK['Task'] == "Sum-Rate":
                 optimal_benchmark = "FP" 
-            elif TARGETTASK['Task'] == "Min" and GP_INCLUDED:
+            elif TARGETTASK['Task'] == "Min-Rate" and GP_INCLUDED:
                 optimal_benchmark = "GP"
             else:
                 optimal_benchmark = "Regular Learning"

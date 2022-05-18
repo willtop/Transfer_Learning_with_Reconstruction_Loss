@@ -10,44 +10,32 @@ print("Using device: ", DEVICE)
 
 # Source task trained agnositic to target task
 LAYOUT_SETTING = 'A'
-SourceTask_HarmonicMean = {'Type': 'Source-Task',
-        'Task': 'Harmonic',
-        'Fullname': 'Harmonic-Mean-Rate',
+
+# Transfer Configuration on Task Specifications
+TRANSFER_CONFIGURE = 'II'
+
+SOURCETASK = {'Type': 'Source-Task',
+        'Task': None,
         'Train': int(5e5),
         'Valid': 5000,
         'Minibatch_Size': 2000,
-        'Learning_Rate': 5e-4,
-        'Epochs': 150,
-        'Loss_Combine_Weight': 0.2}
-TargetTask_Min = {'Type': 'Target-Task',
-        'Task': 'Min',
-        'Fullname': 'Min-Rate',
+        'Learning_Rate': 1e-3,
+        'Epochs': 200,
+        'Loss_Combine_Weight': 3}
+TARGETTASK = {'Type': 'Target-Task',
+        'Task': None,
         'Train': 1000,
-        'Valid': 5000,
-        'Minibatch_Size': 100,
-        'Learning_Rate': 2e-5,
-        'Epochs': 40000}
-TargetTask_Sum = {'Type': 'Target-Task',
-        'Task': 'Sum',
-        'Fullname': 'Sum-Rate',
-        'Train': 1500,
         'Valid': 5000,
         'Minibatch_Size': 100,
         'Learning_Rate': 2e-5,
         'Epochs': 30000}
 
-# Transfer Configuration on Task Specifications
-TRANSFER_CONFIGURE = 'I'
-
 if TRANSFER_CONFIGURE == 'I':
-    SOURCETASK = SourceTask_HarmonicMean
-    TARGETTASK = TargetTask_Min
-elif TRANSFER_CONFIGURE == 'II':
-    SOURCETASK = SourceTask_HarmonicMean
-    TARGETTASK = TargetTask_Sum
+    SOURCETASK['Task'] = 'Sum-Rate'
+    TARGETTASK['Task'] = 'Min-Rate'
 else:
-    print(f"Invalid Transfer Configuration Option: {TRANSFER_CONFIGURE}! Exiting...")
-    exit(1)
+    SOURCETASK['Task'] = 'Min-Rate'
+    TARGETTASK['Task'] = 'Sum-Rate'
 N_TEST_SAMPLES = 2000
 
 assert SOURCETASK['Train'] % SOURCETASK['Minibatch_Size'] == 0 and \
@@ -72,7 +60,7 @@ elif LAYOUT_SETTING=='B':
 else:
     print(f"Wrong Layout Setting {LAYOUT_SETTING}!")
     exit(1)
-SHORTEST_CROSSLINK = 3
+SHORTEST_CROSSLINK = 5
 TX_HEIGHT = 1.5
 RX_HEIGHT = 1.5
 _TX_POWER_dBm = 30

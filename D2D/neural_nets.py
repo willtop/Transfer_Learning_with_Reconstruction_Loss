@@ -9,7 +9,7 @@ class Neural_Net(nn.Module):
     def __init__(self):
         super().__init__()
         # model architecture attribute
-        self.feature_length = int(N_LINKS * N_LINKS * 0.5)
+        self.feature_length = int(N_LINKS * N_LINKS)
         # attributes to be overridden by subclasses
         self.model_type = None
         self.model_path = None
@@ -40,12 +40,10 @@ class Neural_Net(nn.Module):
 
     def compute_objective(self, rates, task):
         n_layouts = rates.size(dim=0)
-        if task == 'Sum':
+        if task == 'Sum-Rate':
             obj = torch.sum(rates, dim=1)
-        elif task == 'Min':
+        elif task == 'Min-Rate':
             obj, _ = torch.min(rates, dim=1)
-        elif task == 'Harmonic':
-            obj = N_LINKS / torch.sum(1/rates, dim=1)
         else:
             print(f"{task} objective computation unimplemented yet!")
             exit(1)
@@ -71,27 +69,27 @@ class Neural_Net(nn.Module):
     # Modules to compose different types of neural net
     def construct_feature_module(self):
         feature_module = nn.ModuleList()
-        feature_module.append(nn.Linear(N_LINKS*N_LINKS, int(2*N_LINKS*N_LINKS)))
+        feature_module.append(nn.Linear(N_LINKS*N_LINKS, int(1.5*N_LINKS*N_LINKS)))
         feature_module.append(nn.ReLU())
-        feature_module.append(nn.Linear(int(2*N_LINKS*N_LINKS), int(2*N_LINKS*N_LINKS)))
+        feature_module.append(nn.Linear(int(1.5*N_LINKS*N_LINKS), int(1.5*N_LINKS*N_LINKS)))
         feature_module.append(nn.ReLU())
-        feature_module.append(nn.Linear(int(2*N_LINKS*N_LINKS), self.feature_length))
+        feature_module.append(nn.Linear(int(1.5*N_LINKS*N_LINKS), self.feature_length))
         feature_module.append(nn.ReLU())
         return feature_module
     
     def construct_optimizer_module(self):
         optimizer_module = nn.ModuleList()
-        optimizer_module.append(nn.Linear(self.feature_length, 2*N_LINKS))
+        optimizer_module.append(nn.Linear(self.feature_length, 4*N_LINKS))
+        optimizer_module.append(nn.ReLU())
+        optimizer_module.append(nn.Linear(4*N_LINKS, 2*N_LINKS))
         optimizer_module.append(nn.ReLU())
         optimizer_module.append(nn.Linear(2*N_LINKS, N_LINKS))
-        optimizer_module.append(nn.ReLU())
-        optimizer_module.append(nn.Linear(N_LINKS, N_LINKS))
         # with power control output being 0~1
         optimizer_module.append(nn.Sigmoid())
         return optimizer_module
 
     def _construct_model_path(self, model_type):
-        return os.path.join(self.base_dir, f"{SOURCETASK['Task']}-{TARGETTASK['Task']}", f"{model_type}_{SETTING_STRING}.ckpt")
+        return os.path.join(self.base_dir, f"{SOURCETASK['Task']}-to-{TARGETTASK['Task']}", f"{model_type}_{SETTING_STRING}.ckpt")
 
 class Regular_Net(Neural_Net):
     def __init__(self):

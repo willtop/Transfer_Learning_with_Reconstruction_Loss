@@ -6,7 +6,7 @@ clc
 SETTING = 'A';
 if SETTING == 'A'
     N_LINKS = 10;
-    FIELD_LENGTH = 150;
+    FIELD_LENGTH = 125;
     SHORTEST_DIRECTLINK = 10;
     LONGEST_DIRECTLINK = 20;
 elseif SETTING == 'B'
