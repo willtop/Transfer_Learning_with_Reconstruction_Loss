@@ -12,43 +12,45 @@ import matplotlib.pyplot as plt
 from setup import *
 from neural_nets import Regular_Net, Transfer_Net, Autoencoder_Transfer_Net
 
-
 def plot_training_curves():
+    legend_fontsize = 20
+    label_fontsize = 20
+    tick_fontsize = 15
     print("[D2D] Plotting training curves...")
+
     fig, axes = plt.subplots(2,2)
-    fig.suptitle(f"Loss over D2D networks {SETTING_STRING}")
     # Plot for source task
     train_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/train_losses_sourceTask_{SETTING_STRING}.npy")
     valid_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/valid_losses_sourceTask_{SETTING_STRING}.npy")
-    axes[0][0].set_xlabel("Epoches")
-    axes[0][0].set_ylabel("Training Losses (Source Task)")
+    axes[0][0].set_xlabel("Training Steps", fontsize=label_fontsize)
+    axes[0][0].set_ylabel("Training Loss (Source Task)", fontsize=label_fontsize)
     axes[0][0].plot(train_losses[:,0], 'g', label="Regular Network")
     axes[0][0].plot(train_losses[:,1], 'b', label="Transfer Network")
     axes[0][0].plot(train_losses[:,2], 'r', label="AE Transfer Network")
     axes[0][0].plot(train_losses[:,3], 'r--', label="AE Transfer Network Combined")
-    axes[0][0].legend()
-    axes[0][1].set_xlabel("Epoches")
-    axes[0][1].set_ylabel("Validation Losses (Source Task)")
+    axes[0][1].set_xlabel("Training Steps", fontsize=label_fontsize)
+    axes[0][1].set_ylabel("Validation Loss (Source Task)", fontsize=label_fontsize)
     axes[0][1].plot(valid_losses[:,0], 'g', label="Regular Network")
     axes[0][1].plot(valid_losses[:,1], 'b', label="Transfer Network")
     axes[0][1].plot(valid_losses[:,2], 'r', label="AE Transfer Network")
     axes[0][1].plot(valid_losses[:,3], 'r--', label="AE Transfer Network Combined")
-    axes[0][1].legend()
     # Plot for target task
     train_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/train_losses_targetTask_{SETTING_STRING}.npy")
     valid_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/valid_losses_targetTask_{SETTING_STRING}.npy")
-    axes[1][0].set_xlabel("Epoches")
-    axes[1][0].set_ylabel("Training Losses (Target Task)")
+    axes[1][0].set_xlabel("Training Steps", fontsize=label_fontsize)
+    axes[1][0].set_ylabel("Training Loss (Target Task)", fontsize=label_fontsize)
     axes[1][0].plot(train_losses[:,0], 'g', label="Regular Network")
     axes[1][0].plot(train_losses[:,1], 'b', label="Transfer Network")
     axes[1][0].plot(train_losses[:,2], 'r', label="AE Transfer Network")
-    axes[1][0].legend()
-    axes[1][1].set_xlabel("Epoches")
-    axes[1][1].set_ylabel("Validation Losses (Target Task)")
+    axes[1][1].set_xlabel("Training Steps", fontsize=label_fontsize)
+    axes[1][1].set_ylabel("Validation Loss (Target Task)", fontsize=label_fontsize)
     axes[1][1].plot(valid_losses[:,0], 'g', label="Regular Network")
     axes[1][1].plot(valid_losses[:,1], 'b', label="Transfer Network")
     axes[1][1].plot(valid_losses[:,2], 'r', label="AE Transfer Network")
-    axes[1][1].legend()
+    for ax in axes.flatten():
+        ax.legend(prop={'size':legend_fontsize}, loc='upper right')
+        ax.tick_params(axis='both', labelsize=tick_fontsize)
+    plt.subplots_adjust(left=0.075,right=0.95,bottom=0.1,top=0.95)
     plt.show()
     print("Finished plotting.")
     return

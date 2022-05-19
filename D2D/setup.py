@@ -12,7 +12,7 @@ print("Using device: ", DEVICE)
 LAYOUT_SETTING = 'A'
 
 # Transfer Configuration on Task Specifications
-TRANSFER_CONFIGURE = 'II'
+TRANSFER_CONFIGURE = 'I'
 
 SOURCETASK = {'Type': 'Source-Task',
         'Task': None,

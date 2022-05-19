@@ -9,7 +9,7 @@ from utils import *
 from setup import *
 
 VISUALIZE_ALLOCATIONS = True
-GP_INCLUDED = False
+GP_INCLUDED = True
 
 if(__name__ =='__main__'):
     g = np.load("Data/g_test_{}.npy".format(SETTING_STRING))
