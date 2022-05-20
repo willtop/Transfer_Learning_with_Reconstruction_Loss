@@ -12,7 +12,7 @@ print("Using device: ", DEVICE)
 LAYOUT_SETTING = 'A'
 
 # Transfer Configuration on Task Specifications
-TRANSFER_CONFIGURE = 'I'
+TRANSFER_CONFIGURE = 'II'
 
 SOURCETASK = {'Type': 'Source-Task',
         'Task': None,
@@ -49,13 +49,13 @@ assert SOURCETASK['Train'] % SOURCETASK['Minibatch_Size'] == 0 and \
 BANDWIDTH = 5e6
 CARRIER_FREQUENCY = 50e9 
 WAVELENGTH = 2.998e8/CARRIER_FREQUENCY
-_NOISE_dBm_Hz = -150
+_NOISE_dBm_Hz = -145
 NOISE_POWER = np.power(10, ((_NOISE_dBm_Hz-30)/10)) * BANDWIDTH
 if LAYOUT_SETTING=='A':
     N_LINKS = 10
     FIELD_LENGTH = 150
     SHORTEST_DIRECTLINK = 5
-    LONGEST_DIRECTLINK = 25
+    LONGEST_DIRECTLINK = 20
 elif LAYOUT_SETTING=='B':
     N_LINKS = 15
     FIELD_LENGTH = 250
