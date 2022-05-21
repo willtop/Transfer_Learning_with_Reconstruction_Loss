@@ -13,9 +13,10 @@ from setup import *
 from neural_nets import Regular_Net, Transfer_Net, Autoencoder_Transfer_Net
 
 def plot_training_curves():
-    legend_fontsize = 20
+    legend_fontsize = 19
     label_fontsize = 20
     tick_fontsize = 15
+    line_width = 1.4
     print("[D2D] Plotting training curves...")
 
     fig, axes = plt.subplots(2,2)
@@ -24,29 +25,29 @@ def plot_training_curves():
     valid_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/valid_losses_sourceTask_{SETTING_STRING}.npy")
     axes[0][0].set_xlabel("Training Steps", fontsize=label_fontsize)
     axes[0][0].set_ylabel("Training Loss (Source Task)", fontsize=label_fontsize)
-    axes[0][0].plot(train_losses[:,0], 'g', label="Regular Network")
-    axes[0][0].plot(train_losses[:,1], 'b', label="Transfer Network")
-    axes[0][0].plot(train_losses[:,2], 'r', label="AE Transfer Network")
-    axes[0][0].plot(train_losses[:,3], 'r--', label="AE Transfer Network Combined")
+    axes[0][0].plot(train_losses[:,0], 'g', linewidth=line_width, label="Regular Learning")
+    axes[0][0].plot(train_losses[:,1], 'b', linewidth=line_width, label="Conventional Transfer")
+    axes[0][0].plot(train_losses[:,2], 'r', linewidth=line_width, label="Transfer with Reconstruct")
+    axes[0][0].plot(train_losses[:,3], 'r--', linewidth=line_width, label="Transfer with Reconstruct (Total Loss)")
     axes[0][1].set_xlabel("Training Steps", fontsize=label_fontsize)
     axes[0][1].set_ylabel("Validation Loss (Source Task)", fontsize=label_fontsize)
-    axes[0][1].plot(valid_losses[:,0], 'g', label="Regular Network")
-    axes[0][1].plot(valid_losses[:,1], 'b', label="Transfer Network")
-    axes[0][1].plot(valid_losses[:,2], 'r', label="AE Transfer Network")
-    axes[0][1].plot(valid_losses[:,3], 'r--', label="AE Transfer Network Combined")
+    axes[0][1].plot(valid_losses[:,0], 'g', linewidth=line_width, label="Regular Learning")
+    axes[0][1].plot(valid_losses[:,1], 'b', linewidth=line_width, label="Conventional Transfer")
+    axes[0][1].plot(valid_losses[:,2], 'r', linewidth=line_width, label="Transfer with Reconstruct")
+    axes[0][1].plot(valid_losses[:,3], 'r--', linewidth=line_width, label="Transfer with Reconstruct (Total Loss)")
     # Plot for target task
     train_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/train_losses_targetTask_{SETTING_STRING}.npy")
     valid_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/valid_losses_targetTask_{SETTING_STRING}.npy")
     axes[1][0].set_xlabel("Training Steps", fontsize=label_fontsize)
     axes[1][0].set_ylabel("Training Loss (Target Task)", fontsize=label_fontsize)
-    axes[1][0].plot(train_losses[:,0], 'g', label="Regular Network")
-    axes[1][0].plot(train_losses[:,1], 'b', label="Transfer Network")
-    axes[1][0].plot(train_losses[:,2], 'r', label="AE Transfer Network")
+    axes[1][0].plot(train_losses[:,0], 'g', linewidth=line_width, label="Regular Learning")
+    axes[1][0].plot(train_losses[:,1], 'b', linewidth=line_width, label="Conventional Transfer")
+    axes[1][0].plot(train_losses[:,2], 'r', linewidth=line_width, label="Transfer with Reconstruct")
     axes[1][1].set_xlabel("Training Steps", fontsize=label_fontsize)
     axes[1][1].set_ylabel("Validation Loss (Target Task)", fontsize=label_fontsize)
-    axes[1][1].plot(valid_losses[:,0], 'g', label="Regular Network")
-    axes[1][1].plot(valid_losses[:,1], 'b', label="Transfer Network")
-    axes[1][1].plot(valid_losses[:,2], 'r', label="AE Transfer Network")
+    axes[1][1].plot(valid_losses[:,0], 'g', linewidth=line_width, label="Regular Learning")
+    axes[1][1].plot(valid_losses[:,1], 'b', linewidth=line_width, label="Conventional Transfer")
+    axes[1][1].plot(valid_losses[:,2], 'r', linewidth=line_width, label="Transfer with Reconstruct")
     for ax in axes.flatten():
         ax.legend(prop={'size':legend_fontsize}, loc='upper right')
         ax.tick_params(axis='both', labelsize=tick_fontsize)
@@ -62,7 +63,6 @@ def shuffle_divide_batches(inputs, n_batches):
     inputs_batches = np.split(inputs[perm], n_batches, axis=0)
     return inputs_batches
 
-EARLY_STOPPING = True
 
 if(__name__=="__main__"):
     parser = argparse.ArgumentParser(description="main script argument parser")
@@ -132,21 +132,16 @@ if(__name__=="__main__"):
                 valid_loss_eps.append([regular_loss, transfer_loss, ae_transfer_loss, ae_transfer_loss_combined])
                 print("[Source Task][Regular] Tr:{:6.3e}; Va:{:6.3e} [Transfer] Tr: {:6.3e}; Va:{:6.3e} [AE Transfer] Tr: {:6.3e}; Va: {:6.3e}".format(
                     regular_loss_ep/(j+1), regular_loss, transfer_loss_ep/(j+1), transfer_loss, ae_transfer_loss_ep/(j+1), ae_transfer_loss))
-                if EARLY_STOPPING:
-                    # Early stopping based on validation losses
-                    if (regular_loss < regular_loss_min):
-                        regular_net.save_model()
-                        regular_loss_min = regular_loss
-                    if (transfer_loss < transfer_loss_min):
-                        transfer_net.save_model()
-                        transfer_loss_min = transfer_loss
-                    if (ae_transfer_loss_combined < ae_transfer_loss_combined_min):
-                        ae_transfer_net.save_model()
-                        ae_transfer_loss_combined_min = ae_transfer_loss_combined    
-                else:
-                    regular_net.save_model()
-                    transfer_net.save_model()
-                    ae_transfer_net.save_model()
+                # For source task, always do early stopping based on validation losses
+                if (regular_loss < regular_loss_min):
+                    regular_net.save_model(early_stop=True)
+                    regular_loss_min = regular_loss
+                if (transfer_loss < transfer_loss_min):
+                    transfer_net.save_model(early_stop=True)
+                    transfer_loss_min = transfer_loss
+                if (ae_transfer_loss_combined < ae_transfer_loss_combined_min):
+                    ae_transfer_net.save_model(early_stop=True)
+                    ae_transfer_loss_combined_min = ae_transfer_loss_combined    
                 np.save(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/train_losses_sourceTask_{SETTING_STRING}.npy", np.array(train_loss_eps))
                 np.save(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/valid_losses_sourceTask_{SETTING_STRING}.npy", np.array(valid_loss_eps))
 
@@ -208,21 +203,20 @@ if(__name__=="__main__"):
         valid_loss_eps.append([regular_loss, transfer_loss, ae_transfer_loss])
         print("[Target Task][Regular] Tr:{:6.3e}; Va:{:6.3e} [Transfer] Tr: {:6.3e}; Va:{:6.3e} [AE Transfer] Tr: {:6.3e}; Va: {:6.3e}".format(
             regular_loss_ep/(j+1), regular_loss, transfer_loss_ep/(j+1), transfer_loss, ae_transfer_loss_ep/(j+1), ae_transfer_loss))
-        if EARLY_STOPPING:
-            # Early stopping based on validation losses
-            if (regular_loss < regular_loss_min):
-                regular_net.save_model()
-                regular_loss_min = regular_loss
-            if (transfer_loss < transfer_loss_min):
-                transfer_net.save_model()
-                transfer_loss_min = transfer_loss
-            if (ae_transfer_loss < ae_transfer_loss_min):
-                ae_transfer_net.save_model()
-                ae_transfer_loss_min = ae_transfer_loss    
-        else:
-            regular_net.save_model()
-            transfer_net.save_model()
-            ae_transfer_net.save_model()
+        # Early stopping based on validation losses
+        if (regular_loss < regular_loss_min):
+            regular_net.save_model(early_stop=True)
+            regular_loss_min = regular_loss
+        if (transfer_loss < transfer_loss_min):
+            transfer_net.save_model(early_stop=True)
+            transfer_loss_min = transfer_loss
+        if (ae_transfer_loss < ae_transfer_loss_min):
+            ae_transfer_net.save_model(early_stop=True)
+            ae_transfer_loss_min = ae_transfer_loss   
+        # Also track models trained without early stopping 
+        regular_net.save_model(early_stop=False)
+        transfer_net.save_model(early_stop=False)
+        ae_transfer_net.save_model(early_stop=False)
         np.save(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/train_losses_targetTask_{SETTING_STRING}.npy", np.array(train_loss_eps))
         np.save(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/valid_losses_targetTask_{SETTING_STRING}.npy", np.array(valid_loss_eps))
 

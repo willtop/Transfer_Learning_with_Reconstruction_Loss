@@ -8,14 +8,11 @@ os.environ['KMP_DUPLICATE_LIB_OK']='True'
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device: ", DEVICE)
 
-# Source task trained agnositic to target task
 LAYOUT_SETTING = 'A'
 
-# Transfer Configuration on Task Specifications
-TRANSFER_CONFIGURE = 'II'
-
+# Source task trained agnositic to target task
 SOURCETASK = {'Type': 'Source-Task',
-        'Task': None,
+        'Task': 'Sum-Rate',
         'Train': int(5e5),
         'Valid': 5000,
         'Minibatch_Size': 2000,
@@ -23,23 +20,12 @@ SOURCETASK = {'Type': 'Source-Task',
         'Epochs': 200,
         'Loss_Combine_Weight': 3}
 TARGETTASK = {'Type': 'Target-Task',
-        'Task': None,
+        'Task': 'Min-Rate',
         'Train': 1000,
         'Valid': 5000,
         'Minibatch_Size': 100,
-        'Learning_Rate': None,
-        'Epochs': None}
-
-if TRANSFER_CONFIGURE == 'I':
-    SOURCETASK['Task'] = 'Sum-Rate'
-    TARGETTASK['Task'] = 'Min-Rate'
-    TARGETTASK['Learning_Rate'] = 2e-5
-    TARGETTASK['Epochs'] = 20000
-else:
-    SOURCETASK['Task'] = 'Min-Rate'
-    TARGETTASK['Task'] = 'Sum-Rate'
-    TARGETTASK['Learning_Rate'] = 1e-5
-    TARGETTASK['Epochs'] = 10000
+        'Learning_Rate': 2e-5,
+        'Epochs': 25000}
 N_TEST_SAMPLES = 2000
 
 assert SOURCETASK['Train'] % SOURCETASK['Minibatch_Size'] == 0 and \
@@ -49,13 +35,13 @@ assert SOURCETASK['Train'] % SOURCETASK['Minibatch_Size'] == 0 and \
 BANDWIDTH = 5e6
 CARRIER_FREQUENCY = 50e9 
 WAVELENGTH = 2.998e8/CARRIER_FREQUENCY
-_NOISE_dBm_Hz = -145
+_NOISE_dBm_Hz = -150
 NOISE_POWER = np.power(10, ((_NOISE_dBm_Hz-30)/10)) * BANDWIDTH
 if LAYOUT_SETTING=='A':
     N_LINKS = 10
     FIELD_LENGTH = 150
     SHORTEST_DIRECTLINK = 5
-    LONGEST_DIRECTLINK = 20
+    LONGEST_DIRECTLINK = 25
 elif LAYOUT_SETTING=='B':
     N_LINKS = 15
     FIELD_LENGTH = 250

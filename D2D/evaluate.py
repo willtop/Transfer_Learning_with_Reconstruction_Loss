@@ -8,15 +8,19 @@ from neural_nets import Regular_Net, Transfer_Net, Autoencoder_Transfer_Net
 from utils import *
 from setup import *
 
-VISUALIZE_ALLOCATIONS = True
+VISUALIZE_ALLOCATIONS = False
 GP_INCLUDED = True
+EVALUATE_EARLY_STOP = False
 
 if(__name__ =='__main__'):
     g = np.load("Data/g_test_{}.npy".format(SETTING_STRING))
     assert np.shape(g) == (N_TEST_SAMPLES, N_LINKS, N_LINKS), f"{np.shape(g)}"
     print(f"[D2D] Evaluate {SETTING_STRING} over {N_TEST_SAMPLES} layouts.")
 
-    regular_net, transfer_net, ae_transfer_net = Regular_Net().to(DEVICE), Transfer_Net().to(DEVICE), Autoencoder_Transfer_Net().to(DEVICE)
+    regular_net, transfer_net, ae_transfer_net = \
+         Regular_Net(EVALUATE_EARLY_STOP).to(DEVICE), \
+         Transfer_Net(EVALUATE_EARLY_STOP).to(DEVICE), \
+         Autoencoder_Transfer_Net(EVALUATE_EARLY_STOP).to(DEVICE)
     power_controls, plot_colors, plot_linestyles, rates_all = {}, {}, {}, {}
     plot_colors["Regular Learning"] = 'm'
     plot_linestyles["Regular Learning"] = '--'

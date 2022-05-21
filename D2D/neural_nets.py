@@ -13,6 +13,7 @@ class Neural_Net(nn.Module):
         # attributes to be overridden by subclasses
         self.model_type = None
         self.model_path = None
+        self.model_path_noEarlyStop = None
         # general attributes
         self.base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Trained_Models")
         self.input_mean = torch.tensor(np.load(os.path.join(self.base_dir, "Input_Normalization_Stats", "g_train_mean_{}.npy".format(SETTING_STRING))),dtype=torch.float32).to(DEVICE)
@@ -50,20 +51,23 @@ class Neural_Net(nn.Module):
         assert obj.size() == (n_layouts,)
         return obj
 
-    def load_model(self):
-        if os.path.exists(self.model_path):
+    def _load_model(self, early_stop):
+        model_path_to_load = self.model_path if early_stop else self.model_path_noEarlyStop
+        if os.path.exists(model_path_to_load):
             if not torch.cuda.is_available():
                 print("Working on a CPU! Loading neural nets while mapping storages on CPU...")
-                self.load_state_dict(torch.load(self.model_path, map_location=torch.device('cpu')))
+                self.load_state_dict(torch.load(model_path_to_load, map_location=torch.device('cpu')))
             else:
-                self.load_state_dict(torch.load(self.model_path))
-            print("[{}] Load trained model from: {}".format(self.model_type, self.model_path))
+                self.load_state_dict(torch.load(model_path_to_load))
+            print("[{}] Model loaded from {}".format(self.model_type, model_path_to_load))
         else:
-            print("[{}] Train from scratch.".format(self.model_type))
+            print("[{}] Train from scratch!".format(self.model_type))
+        return
 
-    def save_model(self):
-        torch.save(self.state_dict(), self.model_path)
-        print("[{}] Model saved at {}".format(self.model_type, self.model_path))
+    def save_model(self, early_stop):
+        model_path_to_save = self.model_path if early_stop else self.model_path_noEarlyStop
+        torch.save(self.state_dict(), model_path_to_save)
+        print("[{}] Model saved at {}".format(self.model_type, model_path_to_save))
         return
 
     # Modules to compose different types of neural net
@@ -89,18 +93,24 @@ class Neural_Net(nn.Module):
         return optimizer_module
 
     def _construct_model_path(self, model_type):
-        return os.path.join(self.base_dir, f"{SOURCETASK['Task']}-to-{TARGETTASK['Task']}", f"{model_type}_{SETTING_STRING}.ckpt")
+        model_path = os.path.join(self.base_dir, f"{SOURCETASK['Task']}-to-{TARGETTASK['Task']}", f"{model_type}_{SETTING_STRING}.ckpt")
+        return model_path
+    
+    def _construct_model_path_noEarlyStop(self, model_type):
+        model_path_noEarlyStop = os.path.join(self.base_dir, f"{SOURCETASK['Task']}-to-{TARGETTASK['Task']}", f"{model_type}_{SETTING_STRING}_noEarlyStop.ckpt")
+        return model_path_noEarlyStop
 
 class Regular_Net(Neural_Net):
-    def __init__(self):
+    def __init__(self, early_stop=True):
         super().__init__()
         self.model_type = "Regular"
         self.model_path = self._construct_model_path(self.model_type)
+        self.model_path_noEarlyStop = self._construct_model_path_noEarlyStop(self.model_type)
         self.sourceTask_feature_module = self.construct_feature_module()
         self.sourceTask_optimizer_module = self.construct_optimizer_module()
         self.targetTask_feature_module = self.construct_feature_module()
         self.targetTask_optimizer_module = self.construct_optimizer_module()
-        self.load_model()
+        self._load_model(early_stop)
 
     def sourceTask_powerControl(self, g):
         x = self.preprocess_input(g)
@@ -126,14 +136,15 @@ class Regular_Net(Neural_Net):
 
 
 class Transfer_Net(Neural_Net):
-    def __init__(self):
+    def __init__(self, early_stop=True):
         super().__init__()
         self.model_type = "Transfer"
         self.model_path = self._construct_model_path(self.model_type)
+        self.model_path_noEarlyStop = self._construct_model_path_noEarlyStop(self.model_type)
         self.feature_module = self.construct_feature_module()
         self.sourceTask_optimizer_module = self.construct_optimizer_module()
         self.targetTask_optimizer_module = self.construct_optimizer_module()
-        self.load_model()
+        self._load_model(early_stop)
 
     def sourceTask_powerControl(self, g):
         x = self.preprocess_input(g)
@@ -165,17 +176,18 @@ class Transfer_Net(Neural_Net):
         return x, obj
 
 class Autoencoder_Transfer_Net(Neural_Net):
-    def __init__(self):
+    def __init__(self, early_stop=True):
         super().__init__()
         self.model_type = "Autoencoder_Transfer"
         self.model_path = self._construct_model_path(self.model_type)
+        self.model_path_noEarlyStop = self._construct_model_path_noEarlyStop(self.model_type)
         self.feature_module = self.construct_feature_module()
         self.decoder_module = self.construct_decoder_module()
         self.sourceTask_optimizer_module = self.construct_optimizer_module()
         self.targetTask_optimizer_module = self.construct_optimizer_module()
         # for auto-encoder reconstruction loss
         self.reconstruct_loss_func = nn.MSELoss(reduction='mean')
-        self.load_model()
+        self._load_model(early_stop)
 
     def construct_decoder_module(self):
         decoder_module = nn.ModuleList()
