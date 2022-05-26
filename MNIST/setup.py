@@ -29,7 +29,7 @@ TargetTask_MNIST = {'Type': 'Target_Task',
   'Valid': 5000,
   'Minibatch_Size': 50,
   'Epochs': 2000,
-  'Learning_Rate': 2e-4}
+  'Learning_Rate': 5e-4}
 
 # Fashion-MNIST
 SourceTask_FashionMNIST = {'Type': 'Source_Task',
@@ -54,7 +54,7 @@ if APPLICATION == 'MNIST':
     SOURCETASK = SourceTask_MNIST
     TARGETTASK = TargetTask_MNIST
     TASK_DESCR = f"MNIST_{SOURCETASK['Task']}-{TARGETTASK['Task']}"
-    IMAGE_LENGTH = 14
+    IMAGE_LENGTH = 20
     INPUT_SIZE = IMAGE_LENGTH**2
     N_TEST_SAMPLES = 10000
     assert SOURCETASK['Train']+SOURCETASK['Valid']+TARGETTASK['Train']+TARGETTASK['Valid'] == 60000
@@ -62,7 +62,7 @@ elif APPLICATION == 'FashionMNIST':
     SOURCETASK = SourceTask_FashionMNIST
     TARGETTASK = TargetTask_FashionMNIST
     TASK_DESCR = f"FashionMNIST_{SOURCETASK['Task']}-{TARGETTASK['Task']}"
-    IMAGE_LENGTH = 14
+    IMAGE_LENGTH = 20
     INPUT_SIZE = IMAGE_LENGTH**2
     N_TEST_SAMPLES = 10000
     assert SOURCETASK['Train']+SOURCETASK['Valid']+TARGETTASK['Train']+TARGETTASK['Valid'] == 60000

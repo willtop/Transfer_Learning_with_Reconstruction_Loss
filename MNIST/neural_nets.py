@@ -41,17 +41,17 @@ class Neural_Net(nn.Module):
     # Modules to compose different types of neural net
     def construct_feature_module(self):
         feature_module = nn.ModuleList()
-        feature_module.append(nn.Linear(INPUT_SIZE, 100))
+        feature_module.append(nn.Linear(INPUT_SIZE, 200))
         feature_module.append(nn.ReLU())
-        feature_module.append(nn.Linear(100, self.feature_length))
+        feature_module.append(nn.Linear(200, self.feature_length))
         feature_module.append(nn.ReLU())
         return feature_module
     
     def construct_optimizer_module(self, output_dim):
         optimizer_module = nn.ModuleList()
-        optimizer_module.append(nn.Linear(self.feature_length, 15))
+        optimizer_module.append(nn.Linear(self.feature_length, 25))
         optimizer_module.append(nn.ReLU())
-        optimizer_module.append(nn.Linear(15, output_dim))
+        optimizer_module.append(nn.Linear(25, output_dim))
         # predicting the probability of the output_dim classes
         optimizer_module.append(nn.Softmax(dim=1))
         return optimizer_module
@@ -131,9 +131,9 @@ class Autoencoder_Transfer_Net(Neural_Net):
 
     def construct_decoder_module(self):
         decoder_module = nn.ModuleList()
-        decoder_module.append(nn.Linear(self.feature_length, 100))
+        decoder_module.append(nn.Linear(self.feature_length, 200))
         decoder_module.append(nn.ReLU())
-        decoder_module.append(nn.Linear(100, INPUT_SIZE))
+        decoder_module.append(nn.Linear(200, INPUT_SIZE))
         return decoder_module
 
     def sourcetask(self, x):
