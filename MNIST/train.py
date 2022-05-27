@@ -72,7 +72,7 @@ def plot_training_curves():
 # Since CE loss is not tightly correlated with the accuracy. Use validation accuracy
 # for early stopping criterion (except for AE transfer learning training loss)
 EARLY_STOPPING = True
-LOSS_FUNC = torch.nn.CrossEntropyLoss(reduction='mean')
+LOSS_FUNC = torch.nn.BCELoss(reduction='mean')
 
 if(__name__=="__main__"):
     parser = argparse.ArgumentParser(description="main script argument parser")
@@ -89,14 +89,18 @@ if(__name__=="__main__"):
             transform=transforms.Compose([transforms.ToTensor(),
                                           transforms.Resize(size=(IMAGE_LENGTH, IMAGE_LENGTH)),
                                           transforms.Normalize(mean=(0.1307,), std=(0.3081,)),
-                                          transforms.Lambda(lambda x: x.flatten())]))
+                                          transforms.Lambda(lambda x: x.flatten())]))        
     else:
         original_data = FashionMNIST(root='Data/', train=True, download=True, 
             transform=transforms.Compose([transforms.ToTensor(),
                                           transforms.Resize(size=(IMAGE_LENGTH, IMAGE_LENGTH)),
                                           transforms.Lambda(lambda x: x.flatten())]))
-    assert len(original_data) == 60000
-    sourcetask_data, targettask_data = random_split(original_data, [SOURCETASK['Train']+SOURCETASK['Valid'], TARGETTASK['Train']+TARGETTASK['Valid']])
+    original_data = utils.get_subclass_data(original_data)
+    n_samples = len(original_data) 
+    n_source_samples = int(n_samples * 0.95)
+    n_target_samples = n_samples - n_source_samples 
+    print(f"Source task samples: {n_source_samples}; Target task samples: {n_target_samples}")
+    sourcetask_data, targettask_data = random_split(original_data, [n_source_samples, n_target_samples])
 
     print(f"<<<<<<<<<<<<<<<<<<<<<<<Learn for {TASK_DESCR}>>>>>>>>>>>>>>>>>>>>>>")
     """ 
@@ -105,11 +109,17 @@ if(__name__=="__main__"):
     print(f"Loading {APPLICATION} source data...")
     regular_net, transfer_net, ae_transfer_net = \
             Regular_Net().to(DEVICE), Transfer_Net().to(DEVICE), Autoencoder_Transfer_Net().to(DEVICE)
-    train_data, valid_data = random_split(sourcetask_data, [SOURCETASK['Train'], SOURCETASK['Valid']])
+    n_train_samples = int(n_source_samples * 0.7)
+    n_valid_samples = n_source_samples - n_train_samples
+    train_data, valid_data = random_split(sourcetask_data, [n_train_samples, n_valid_samples])
+    utils.get_class_distribution(train_data, "Train Data on Source Task")
+    utils.get_class_distribution(valid_data, "Validation Data on Source Task")
     train_loader = DataLoader(train_data, batch_size = SOURCETASK['Minibatch_Size'], shuffle=True, drop_last=True)    
     valid_loader = DataLoader(valid_data, batch_size = len(valid_data), shuffle=False)
-    n_minibatches = int(SOURCETASK['Train'] / SOURCETASK['Minibatch_Size'])
-    print(f"[Source Task on {SOURCETASK['Task']}] Data Loaded! With {SOURCETASK['Train']} training samples ({n_minibatches} minibatches) and {SOURCETASK['Valid']} validation samples.")
+    n_minibatches = int(n_train_samples / SOURCETASK['Minibatch_Size'])
+    print(f"[Source Task on {SOURCETASK['Task']}] Data Loaded! With {n_train_samples} training samples ({n_minibatches} minibatches) and {n_valid_samples} validation samples.")
+    
+    print(f"")
 
     optimizer_regular, optimizer_transfer, optimizer_ae_transfer = \
             optim.Adam(regular_net.parameters(), lr=SOURCETASK['Learning_Rate']), \
@@ -147,8 +157,8 @@ if(__name__=="__main__"):
             if (j+1) % 50 == 0 or (j+1) % n_minibatches == 0:
                 # Validation
                 for data, targets in valid_loader: # only load up one batch
-                    assert data.size() == (SOURCETASK['Valid'], INPUT_SIZE) and \
-                        targets.size() == (SOURCETASK['Valid'], )
+                    assert data.size() == (n_valid_samples, INPUT_SIZE) and \
+                        targets.size() == (n_valid_samples, )
                     targets = utils.convert_targets(targets, SOURCETASK)
                     with torch.no_grad():
                         predictions = regular_net.sourcetask(data.to(DEVICE))
@@ -193,11 +203,15 @@ if(__name__=="__main__"):
     Target-Task Training 
     """
     # The splits should be reproduciable with torch.manual_seed set in setup.py                                
-    train_data, valid_data = random_split(targettask_data, [TARGETTASK['Train'], TARGETTASK['Valid']])
-    train_loader = DataLoader(train_data, batch_size = TARGETTASK['Minibatch_Size'], shuffle=True)    
+    n_train_samples = int(n_target_samples * 0.10)
+    n_valid_samples = n_target_samples - n_train_samples
+    train_data, valid_data = random_split(targettask_data, [n_train_samples, n_valid_samples])
+    utils.get_class_distribution(train_data, "Train Data on Target Task")
+    utils.get_class_distribution(valid_data, "Validation Data on Target Task")
+    train_loader = DataLoader(train_data, batch_size = TARGETTASK['Minibatch_Size'], shuffle=True, drop_last=True)    
     valid_loader = DataLoader(valid_data, batch_size = len(valid_data), shuffle=False)
-    n_minibatches = int(TARGETTASK['Train'] / TARGETTASK['Minibatch_Size'])
-    print(f"[Target Task on {TARGETTASK['Task']}] Data Loaded! With {TARGETTASK['Train']} training samples ({n_minibatches} minibatches) and {TARGETTASK['Valid']} validation samples.")
+    n_minibatches = int(n_train_samples / TARGETTASK['Minibatch_Size'])
+    print(f"[Target Task on {TARGETTASK['Task']}] Data Loaded! With {n_train_samples} training samples ({n_minibatches} minibatches) and {n_valid_samples} validation samples.")
 
     # Create neural network objects again so they load weights from previous early-stopping best checkpoint on source task
     regular_net, transfer_net, ae_transfer_net = \
@@ -215,7 +229,7 @@ if(__name__=="__main__"):
         regular_loss_ep, transfer_loss_ep, ae_transfer_loss_ep = 0, 0, 0
         for j, (data, targets) in enumerate(train_loader):
             assert data.size() == (TARGETTASK['Minibatch_Size'], INPUT_SIZE) and \
-                   targets.size() == (TARGETTASK['Minibatch_Size'], )
+                   targets.size() == (TARGETTASK['Minibatch_Size'], ), f"{data.size()}"
             targets = utils.convert_targets(targets, TARGETTASK)                    
             optimizer_regular.zero_grad()
             optimizer_transfer.zero_grad()
@@ -239,8 +253,8 @@ if(__name__=="__main__"):
             if (j+1) % 50 == 0 or (j+1) % n_minibatches == 0:
                 # Validation
                 for data, targets in valid_loader: # only load up one batch
-                    assert data.size() == (TARGETTASK['Valid'], INPUT_SIZE) and \
-                        targets.size() == (TARGETTASK['Valid'], )
+                    assert data.size() == (n_valid_samples, INPUT_SIZE) and \
+                        targets.size() == (n_valid_samples, )
                     targets = utils.convert_targets(targets, TARGETTASK)                    
                     with torch.no_grad():
                         predictions = regular_net.targettask(data.to(DEVICE))
