@@ -8,7 +8,7 @@ from torchvision import transforms
 import os
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
-side_lengths = [28, 20, 14, 10, 7]
+side_lengths = [28, 20, 14, 10]
 if __name__=="__main__":
     mnist_data = {}
     for side_length in side_lengths:
@@ -22,7 +22,7 @@ if __name__=="__main__":
                                               transforms.Normalize(mean=(0.1307,),std=(0.3081,)),
                                               transforms.Resize(size=(side_length, side_length))]))
     # Find index of images on class of interests
-    classes = [0,1,8]
+    classes = [1,3,5]
     idxes = {}
     for cls in classes:
         idxes_tmp = (mnist_data[side_lengths[0]].targets == cls).int()

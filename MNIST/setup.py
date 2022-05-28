@@ -20,9 +20,9 @@ SourceTask_MNIST = {'Type': 'Source_Task',
   'Learning_Rate': 1e-3,
   'Loss_Combine_Weight': 5}
 TargetTask_MNIST = {'Type': 'Target_Task',
-  'Task': 8,
+  'Task': 5,
   'Minibatch_Size': 32,
-  'Epochs': 10000,
+  'Epochs': 8000,
   'Learning_Rate': 2e-4}
 
 # Fashion-MNIST
@@ -41,8 +41,8 @@ TargetTask_FashionMNIST = {'Type': 'Target_Task',
 if APPLICATION == 'MNIST':
     SOURCETASK = SourceTask_MNIST
     TARGETTASK = TargetTask_MNIST
-    CLASSES = [0,1,8]
-    TASK_DESCR = f"MNIST_{SOURCETASK['Task']}-{TARGETTASK['Task']}"
+    CLASSES = [1,3,5]
+    TASK_DESCR = f"MNIST_{SOURCETASK['Task']}-{TARGETTASK['Task']}_with{3}"
     IMAGE_LENGTH = 10
     INPUT_SIZE = IMAGE_LENGTH**2
 elif APPLICATION == 'FashionMNIST':
@@ -50,7 +50,7 @@ elif APPLICATION == 'FashionMNIST':
     TARGETTASK = TargetTask_FashionMNIST
     CLASSES = [0,5,7]
     TASK_DESCR = f"FashionMNIST_{SOURCETASK['Task']}-{TARGETTASK['Task']}"
-    IMAGE_LENGTH = 7
+    IMAGE_LENGTH = 10
     INPUT_SIZE = IMAGE_LENGTH**2
 else:
     print(f"Invalid application {APPLICATION}!")
