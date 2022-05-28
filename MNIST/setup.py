@@ -18,11 +18,11 @@ SourceTask_MNIST = {'Type': 'Source_Task',
   'Minibatch_Size': 500,
   'Epochs': 100,
   'Learning_Rate': 1e-3,
-  'Loss_Combine_Weight': 4}
+  'Loss_Combine_Weight': 5}
 TargetTask_MNIST = {'Type': 'Target_Task',
   'Task': 8,
   'Minibatch_Size': 32,
-  'Epochs': 5000,
+  'Epochs': 10000,
   'Learning_Rate': 2e-4}
 
 # Fashion-MNIST
