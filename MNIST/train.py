@@ -39,6 +39,8 @@ def plot_training_curves():
     axes[0][1].legend()
     axes[0][2].set_xlabel("Epoches")
     axes[0][2].set_ylabel("Validation Accuracies (Source Task)")
+    # zoom in on interesting point
+    axes[0][2].set_ylim(bottom=0.75)
     axes[0][2].plot(valid_accuracies[:,0], 'g', label="Regular Network")
     axes[0][2].plot(valid_accuracies[:,1], 'b', label="Transfer Network")
     axes[0][2].plot(valid_accuracies[:,2], 'r', label="AE Transfer Network")
@@ -61,6 +63,8 @@ def plot_training_curves():
     axes[1][1].legend()
     axes[1][2].set_xlabel("Epoches")
     axes[1][2].set_ylabel("Validation Accuracies (Target Task)")
+    # zoom in on interesting point
+    axes[1][2].set_ylim(bottom=0.75)
     axes[1][2].plot(valid_accuracies[:,0], 'g', label="Regular Network")
     axes[1][2].plot(valid_accuracies[:,1], 'b', label="Transfer Network")
     axes[1][2].plot(valid_accuracies[:,2], 'r', label="AE Transfer Network")

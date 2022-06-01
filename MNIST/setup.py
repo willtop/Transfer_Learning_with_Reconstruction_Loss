@@ -20,7 +20,7 @@ SourceTask_MNIST = {'Type': 'Source_Task',
   'Learning_Rate': 1e-3,
   'Loss_Combine_Weight': 5}
 TargetTask_MNIST = {'Type': 'Target_Task',
-  'Task': 5,
+  'Task': 8,
   'Minibatch_Size': 32,
   'Epochs': 8000,
   'Learning_Rate': 2e-4}
@@ -41,8 +41,8 @@ TargetTask_FashionMNIST = {'Type': 'Target_Task',
 if APPLICATION == 'MNIST':
     SOURCETASK = SourceTask_MNIST
     TARGETTASK = TargetTask_MNIST
-    CLASSES = [1,3,5]
-    TASK_DESCR = f"MNIST_{SOURCETASK['Task']}-{TARGETTASK['Task']}_with{3}"
+    CLASSES = [0,1,8]
+    TASK_DESCR = f"MNIST_{SOURCETASK['Task']}-{TARGETTASK['Task']}_with{0}"
     IMAGE_LENGTH = 10
     INPUT_SIZE = IMAGE_LENGTH**2
 elif APPLICATION == 'FashionMNIST':
