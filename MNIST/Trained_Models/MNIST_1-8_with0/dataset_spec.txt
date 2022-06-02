@@ -1,0 +1,3 @@
+source task target task split: 0.95 and remaining
+source task train and valid split: 0.7 and remaining
+target task train and valid split: 0.1 and remaining
