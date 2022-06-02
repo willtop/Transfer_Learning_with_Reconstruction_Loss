@@ -101,9 +101,9 @@ if(__name__=="__main__"):
                                           transforms.Lambda(lambda x: x.flatten())]))
     original_data = utils.get_subclass_data(original_data)
     n_samples = len(original_data) 
-    n_source_samples = int(n_samples * 0.95)
+    n_source_samples = int(n_samples * 0.9)
     n_target_samples = n_samples - n_source_samples 
-    print(f"Source task samples: {n_source_samples}; Target task samples: {n_target_samples}")
+    print(f"Total samples: {n_samples}; Source task samples: {n_source_samples}; Target task samples: {n_target_samples}")
     sourcetask_data, targettask_data = random_split(original_data, [n_source_samples, n_target_samples])
 
     print(f"<<<<<<<<<<<<<<<<<<<<<<<Learn for {TASK_DESCR}>>>>>>>>>>>>>>>>>>>>>>")
@@ -207,7 +207,7 @@ if(__name__=="__main__"):
     Target-Task Training 
     """
     # The splits should be reproduciable with torch.manual_seed set in setup.py                                
-    n_train_samples = int(n_target_samples * 0.10)
+    n_train_samples = int(n_target_samples * 0.50)
     n_valid_samples = n_target_samples - n_train_samples
     train_data, valid_data = random_split(targettask_data, [n_train_samples, n_valid_samples])
     utils.get_class_distribution(train_data, "Train Data on Target Task")
