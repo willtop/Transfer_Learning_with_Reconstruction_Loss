@@ -1,6 +1,15 @@
 import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits import mplot3d
 import itertools
+import utils
 from setup import *
+
+CHECK_SETTING = True
+GENERATE_DATA_SOURCETASK = True
+GENERATE_DATA_TARGETTASK = True
+GENERATE_DATA_TEST = True
+
 
 def get_channels_to_BS(ue_locs, BS_ID):
     n_networks = np.shape(ue_locs)[0]
@@ -49,8 +58,47 @@ def generate_MIMO_networks(n_networks):
         assert np.shape(channels_one_BS)==(n_networks, N_BS_ANTENNAS)
         channels.append(np.expand_dims(channels_one_BS,axis=1))
     channels = np.concatenate(channels, axis=1)
-    assert np.shape(n_networks, N_BS, N_BS_ANTENNAS)
+    assert np.shape(channels) == (n_networks, N_BS, N_BS_ANTENNAS)
     return ue_locs, channels
 
+
 if __name__=="__main__":
-    
+    if CHECK_SETTING:
+        ue_locs, channels = generate_MIMO_networks(3)
+        # visualize the location and channels generated
+        for i in range(3):
+            fig = plt.figure()
+            ax = fig.add_subplot(2,1,1,projection="3d")
+            utils.visualize_network(ax, ue_locs[i])
+            ax = fig.add_subplot(2,1,2)
+            for j in range(N_BS):
+                ax.plot(np.power(np.abs(channels[i][j]),2), label=f'BS_{j+1}')
+            ax.legend()
+            plt.show()
+        exit(0)
+
+    if GENERATE_DATA_SOURCETASK:
+        print(f"Generate data for {SOURCETASK['Type']} {SOURCETASK['Task']} training, including statistics for input normalization......")
+        ue_locs, channels = generate_MIMO_networks(SOURCETASK['Train']+SOURCETASK['Valid'])
+        np.save("Data/uelocs_sourcetask.npy", ue_locs)
+        np.save("Data/channels_sourcetask.npy", channels)
+        # Use the source-task train data for input normalization stats
+        np.save("Trained_Models/Channels_Stats/channels_train_mean.npy", np.mean(channels[:SOURCETASK['Train']], axis=0))
+        np.save("Trained_Models/Channels_Stats/channels_train_std.npy", np.std(channels[:SOURCETASK['Train']], axis=0))
+        # Randomly generate uplink pilots sensing vectors for all base-stations
+        sensing_vectors = np.random.normal(size=(N_BS, N_PILOTS, N_BS_ANTENNAS)) + 1j * np.random.normal(size=(N_BS, N_PILOTS, N_BS_ANTENNAS))
+        np.save("Trained_Models/sensing_vectors.npy", sensing_vectors)
+
+    if GENERATE_DATA_TARGETTASK:
+        print(f"Generate data for {TARGETTASK['Type']} {TARGETTASK['Task']} training......")
+        ue_locs, channels = generate_MIMO_networks(TARGETTASK['Train']+TARGETTASK['Valid'])
+        np.save("Data/uelocs_targettask.npy", ue_locs)
+        np.save("Data/channels_targettask.npy", channels)
+
+    if GENERATE_DATA_TEST:
+        print(f"Generate data for testing......")
+        ue_locs, channels = generate_MIMO_networks(N_TEST_SAMPLES)
+        np.save("Data/uelocs_test.npy", ue_locs)
+        np.save("Data/channels_test.npy", channels)
+
+    print("Script Completed!")

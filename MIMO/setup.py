@@ -1,5 +1,9 @@
 import numpy as np
 import torch
+import os
+import random
+# For windows specific error
+os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device for torch: ", DEVICE)
@@ -26,3 +30,31 @@ assert np.floor(np.sqrt(N_BS_ANTENNAS))**2 == N_BS_ANTENNAS
 """
 Training Setting
 """
+SOURCETASK = {'Type': 'Source-Task',
+        'Task': 'Localization',
+        'Train': int(5e5),
+        'Valid': 5000,
+        'Minibatch_Size': 2000,
+        'Learning_Rate': 1e-3,
+        'Epochs': 200,
+        'Loss_Combine_Weight': 3}
+TARGETTASK = {'Type': 'Target-Task',
+        'Task': 'Beamforming',
+        'Train': 1000,
+        'Valid': 5000,
+        'Minibatch_Size': 100,
+        'Learning_Rate': 2e-5,
+        'Epochs': 25000}
+N_TEST_SAMPLES = 2000
+
+assert SOURCETASK['Train'] % SOURCETASK['Minibatch_Size'] == 0 and \
+       TARGETTASK['Train'] % TARGETTASK['Minibatch_Size'] == 0
+
+"""
+Reproduciability
+"""
+RANDOM_SEED = 123
+os.environ['PYTHONHASHSEED'] = str(RANDOM_SEED)
+random.seed(RANDOM_SEED)
+np.random.seed(RANDOM_SEED)
+torch.manual_seed(RANDOM_SEED)
