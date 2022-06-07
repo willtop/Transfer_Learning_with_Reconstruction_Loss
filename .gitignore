@@ -129,6 +129,7 @@ dmypy.json
 .pyre/
 
 # added by myself
+Data/*
 D2D/Data/*
 MNIST/Data/*
 MNIST/SanityChecks/Data_Checks/*
