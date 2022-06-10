@@ -10,6 +10,10 @@ GENERATE_DATA_SOURCETASK = True
 GENERATE_DATA_TARGETTASK = True
 GENERATE_DATA_TEST = True
 
+def compute_pathloss(dists):
+    pathlosses_tmp = 32.6+36.7*np.log(dists)
+    pathlosses = np.power(10, -pathlosses_tmp/10)
+    return pathlosses
 
 def get_channels_to_BS(ue_locs, BS_ID):
     n_networks = np.shape(ue_locs)[0]
@@ -34,13 +38,13 @@ def get_channels_to_BS(ue_locs, BS_ID):
     indices = np.transpose(np.array(list(itertools.product(np.arange(np.sqrt(N_BS_ANTENNAS)), repeat=2))))
     steer_vec_tmp = np.matmul(steer_vec_tmp, indices)
     assert np.shape(steer_vec_tmp) == (n_networks, N_BS_ANTENNAS)
-    channels_LOS = np.exp(ANTENNA_SPACING_PHASE_SHIFT*steer_vec_tmp)  
+    channels_LOS = np.exp(1j*ANTENNA_SPACING_PHASE_SHIFT*steer_vec_tmp)  
     channels_NLOS = np.random.normal(size=(n_networks, N_BS_ANTENNAS)) + 1j * np.random.normal(size=(n_networks, N_BS_ANTENNAS))
     channels_fading = np.sqrt(RICIAN_FACTOR/(1+RICIAN_FACTOR))*channels_LOS + \
                         np.sqrt(1/(1+RICIAN_FACTOR))*channels_NLOS
     # compute path losses
     ue_bs_dists_tmp = np.tile(np.expand_dims(ue_bs_dists, axis=1), (1, N_BS_ANTENNAS))
-    pathlosses = 32.6 + 36.7*np.log(ue_bs_dists_tmp)
+    pathlosses = compute_pathloss(ue_bs_dists_tmp)
     assert np.shape(pathlosses)==np.shape(channels_fading)==(n_networks, N_BS_ANTENNAS)
     channels_one_BS = pathlosses*channels_fading
     return channels_one_BS
@@ -64,15 +68,15 @@ def generate_MIMO_networks(n_networks):
 
 if __name__=="__main__":
     if CHECK_SETTING:
-        ue_locs, channels = generate_MIMO_networks(3)
+        ue_locs, channels = generate_MIMO_networks(4)
         # visualize the location and channels generated
-        for i in range(3):
+        for i in range(4):
             fig = plt.figure()
             ax = fig.add_subplot(2,1,1,projection="3d")
             utils.visualize_network(ax, ue_locs[i])
             ax = fig.add_subplot(2,1,2)
             for j in range(N_BS):
-                ax.plot(np.power(np.abs(channels[i][j]),2), label=f'BS_{j+1}')
+                ax.plot(np.arange(1, N_BS_ANTENNAS+1), np.power(np.abs(channels[i][j]),2), label=f'BS_{j+1}')
             ax.legend()
             plt.show()
         exit(0)
@@ -85,6 +89,9 @@ if __name__=="__main__":
         # Use the source-task train data for input normalization stats
         np.save("Trained_Models/Channels_Stats/channels_train_mean.npy", np.mean(channels[:SOURCETASK['Train']], axis=0))
         np.save("Trained_Models/Channels_Stats/channels_train_std.npy", np.std(channels[:SOURCETASK['Train']], axis=0))
+        # Randomly generate uplink pilots used by the user-equipment (same across all networks)
+        pilots = np.random.normal(size=N_PILOTS) + 1j*np.random.normal(size=N_PILOTS)
+        np.save("Trained_Models/pilots.npy", pilots)
         # Randomly generate uplink pilots sensing vectors for all base-stations
         sensing_vectors = np.random.normal(size=(N_BS, N_PILOTS, N_BS_ANTENNAS)) + 1j * np.random.normal(size=(N_BS, N_PILOTS, N_BS_ANTENNAS))
         np.save("Trained_Models/sensing_vectors.npy", sensing_vectors)

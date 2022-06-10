@@ -21,26 +21,29 @@ class Neural_Net(nn.Module):
 
     def _preprocess_inputs(self, inputs):
         assert inputs.ndim == 3
-
-    def _normalize_channels(self, channels):
-        assert channels.ndim == 3
-        channels = channels.view(-1, N_BS*N_BS_ANTENNAS)
-        x = (channels-self.channels_mean.view(1, N_BS*N_BS_ANTENNAS))/self.channels_std.view(1, N_BS*N_BS_ANTENNAS)
-        return x
+        inputs = inputs.view(-1, N_BS*N_PILOTS)
+        inputs = torch.view_as_real(inputs)
+        inputs = inputs.view(-1, N_BS*N_PILOTS*2)
+        return inputs
+    
+    def _compute_beamformer_gains(self, beamformers_raw, channels):
+        n_networks = beamformers_raw.size(0)
+        assert beamformers_raw.size() == (n_networks, N_BS*N_BS_ANTENNAS*2)
+        assert channels.size() == (n_networks, N_BS, N_BS_ANTENNAS)
+        beamformers_raw = torch.view_as_complex(beamformers_raw).view(n_networks, N_BS, N_BS_ANTENNAS)
+        # normalize beamformers to unit power
+        beamformers = beamformers_raw / beamformers_raw.norm(dim=-1, keepdim=True)
+        # compute beamformer gain across all BSs
+        channel_gains_tmp = torch.sum(beamformers * channels.conj(), dim=-1)
+        channel_gains = channel_gains.abs().pow(2)
+        assert channel_gains.size() == (n_networks, N_BS)
+        return channel_gains
 
     def sourcetask(self):
         raise NotImplementedError
 
     def targettask(self):
         raise NotImplementedError
-
-    def _compute_channel_gains(self, beamformers, channels):
-        dl = torch.diagonal(channels, dim1=1, dim2=2)
-        cl = channels * (1.0-torch.eye(N_LINKS, dtype=torch.float).to(DEVICE))
-        sinrs_numerators = pc * dl
-        sinrs_denominators = torch.squeeze(torch.matmul(cl, torch.unsqueeze(pc,-1)), -1) + NOISE_POWER/TX_POWER
-        sinrs = sinrs_numerators / (sinrs_denominators * SINR_GAP)
-        return torch.log(1+sinrs) # Un-normalized for better scaled gradients
 
     def _load_model(self, early_stop):
         model_path_to_load = self.model_path if early_stop else self.model_path_noEarlyStop
@@ -95,11 +98,7 @@ class Neural_Net(nn.Module):
     def _construct_optimizer_module(self, task_obj):
         if task_obj['Task'] == 'Localization':
             return self._construct_localization_optimizer_module()
-        elif task_obj['Task'] == 'Beamforming':
-            return self._construct_beamforming_optimizer_module()
-        else:
-            exit(1)
-        return
+        return self._construct_beamforming_optimizer_module()
 
     def _construct_model_path(self, model_type):
         model_path = os.path.join(self.base_dir, f"{SOURCETASK['Task']}-to-{TARGETTASK['Task']}", f"{model_type}.ckpt")
@@ -121,27 +120,27 @@ class Regular_Net(Neural_Net):
         self.targettask_optimizer_module = self._construct_optimizer_module(TARGETTASK)
         self._load_model(early_stop)
 
-    def sourcetask(self, x):
+    def sourcetask(self, x, channels):
         x = self._preprocess_input(x)
         for lyr in self.sourcetask_feature_module:
             x = lyr(x)
         for lyr  in self.sourcetask_optimizer_module:
             x = lyr(x)
-        rates = self.compute_rates(x, g)
-        obj = self.compute_objective(rates, SOURCETASK['Task'])
-        obj = torch.mean(obj)
-        return x, obj
+        if SOURCETASK['Task'] == "Beamforming":
+            channel_gains = self._compute_beamformer_gains(x, channels)
+            return channel_gains.sum(dim=1).mean()
+        return x # for localization
 
-    def targetTask_powerControl(self, g):
-        x = self.preprocess_input(g)
-        for lyr in self.targetTask_new_module:
+    def targettask(self, x, channels):
+        x = self._preprocess_input(x)
+        for lyr in self.targettask_feature_module:
             x = lyr(x)
-        for lyr  in self.targetTask_new_module:
+        for lyr  in self.targettask_optimizer_module:
             x = lyr(x)
-        rates = self.compute_rates(x, g)
-        obj = self.compute_objective(rates, TARGETTASK['Task'])
-        obj = torch.mean(obj)
-        return x, obj
+        if TARGETTASK['Task'] == "Beamforming":
+            channel_gains = self._compute_beamformer_gains(x, channels)
+            return channel_gains.sum(dim=1).mean()
+        return x # for localization
 
 
 class Transfer_Net(Neural_Net):
@@ -150,9 +149,9 @@ class Transfer_Net(Neural_Net):
         self.model_type = "Transfer"
         self.model_path = self._construct_model_path(self.model_type)
         self.model_path_noEarlyStop = self._construct_model_path_noEarlyStop(self.model_type)
-        self.new_module = self.construct_new_module()
-        self.sourceTask_new_module = self.construct_new_module()
-        self.targetTask_new_module = self.construct_new_module()
+        self.feature_module = self._construct_feature_module()
+        self.sourcetask_optimizer_module = self._construct_new_module()
+        self.targettask_optimizer_module = self.construct_new_module()
         self._load_model(early_stop)
 
     def sourceTask_powerControl(self, g):
