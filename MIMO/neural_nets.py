@@ -193,8 +193,6 @@ class Autoencoder_Transfer_Net(Neural_Net):
         self.decoder_module = self._construct_decoder_module()
         self.sourcetask_optimizer_module = self._construct_optimizer_module(SOURCETASK)
         self.targettask_optimizer_module = self._construct_optimizer_module(TARGETTASK)
-        # for auto-encoder reconstruction loss
-        self.reconstruct_loss_func = nn.MSELoss(reduction='mean')
         self._load_model(early_stop)
 
     def _construct_decoder_module(self):
@@ -211,17 +209,17 @@ class Autoencoder_Transfer_Net(Neural_Net):
         x = self._preprocess_input(x)
         for lyr in self.feature_module:
             x = lyr(x)
-        features_reconstructed = torch.clone(x)
-        # try to reconstruct features
+        factors_reconstructed = torch.clone(x)
+        # try to reconstruct factors
         for lyr in self.decoder_module:
-            features_reconstructed = lyr(features_reconstructed)
+            factors_reconstructed = lyr(factors_reconstructed)
         # optimize for the objective
         for lyr in self.sourcetask_optimizer_module:
             x = lyr(x)
         if SOURCETASK['Task'] == "Beamforming":
             channel_gains = self._compute_beamformer_gains(x, channels)
             x = channel_gains.sum(dim=1).mean()
-        return x, features_reconstructed
+        return x, factors_reconstructed
     
     # freeze parameters for transfer learning
     def freeze_parameters(self):

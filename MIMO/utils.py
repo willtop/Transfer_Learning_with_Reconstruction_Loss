@@ -1,7 +1,10 @@
 import numpy as np
 from setup import *
 
-def receive_uplink_signals(pilots, channels, sensing_vectors):
+def obtain_measured_uplink_signals(channels):
+    # the pilots and sensing vectors are the same throughout
+    pilots = np.load("Trained_Models/pilots.npy")
+    sensing_vectors = np.load("Trained_Models/sensing_vectors.npy")
     n_networks = np.shape(channels)[0]
     assert np.shape(pilots)==(N_PILOTS,)
     assert np.shape(channels)==(n_networks, N_BS, N_BS_ANTENNAS)
