@@ -150,38 +150,38 @@ class Transfer_Net(Neural_Net):
         self.model_path = self._construct_model_path(self.model_type)
         self.model_path_noEarlyStop = self._construct_model_path_noEarlyStop(self.model_type)
         self.feature_module = self._construct_feature_module()
-        self.sourcetask_optimizer_module = self._construct_new_module()
-        self.targettask_optimizer_module = self.construct_new_module()
+        self.sourcetask_optimizer_module = self._construct_optimizer_module(SOURCETASK)
+        self.targettask_optimizer_module = self._construct_optimizer_module(TARGETTASK)
         self._load_model(early_stop)
 
-    def sourceTask_powerControl(self, g):
-        x = self.preprocess_input(g)
-        for lyr in self.new_module:
+    def sourcetask(self, x, channels):
+        x = self.preprocess_input(x)
+        for lyr in self.feature_module:
             x = lyr(x)
-        for lyr  in self.sourceTask_new_module:
+        for lyr  in self.sourcetask_optimizer_module:
             x = lyr(x)
-        rates = self.compute_rates(x, g)
-        obj = self.compute_objective(rates, SOURCETASK['Task'])
-        obj = torch.mean(obj)
-        return x, obj
+        if SOURCETASK['Task'] == "Beamforming":
+            channel_gains = self._compute_beamformer_gains(x, channels)
+            return channel_gains.sum(dim=1).mean()
+        return x # for localization
 
     # freeze parameters for transfer learning
     def freeze_parameters(self):
-        for lyr in self.new_module:
+        for lyr in self.feature_module:
             for para in lyr.parameters():
                 para.requires_grad = False
         return
 
-    def targetTask_powerControl(self, g):
-        x = self.preprocess_input(g)
-        for lyr in self.new_module:
+    def targettask(self, x, channels):
+        x = self.preprocess_input(x)
+        for lyr in self.feature_module:
             x = lyr(x)
-        for lyr  in self.targetTask_new_module:
+        for lyr  in self.targettask_optimizer_module:
             x = lyr(x)
-        rates = self.compute_rates(x, g)
-        obj = self.compute_objective(rates, TARGETTASK['Task'])
-        obj = torch.mean(obj)
-        return x, obj
+        if TARGETTASK['Task'] == "Beamforming":
+            channel_gains = self._compute_beamformer_gains(x, channels)
+            return channel_gains.sum(dim=1).mean()
+        return x # for localization
 
 class Autoencoder_Transfer_Net(Neural_Net):
     def __init__(self, early_stop=True):
@@ -189,38 +189,39 @@ class Autoencoder_Transfer_Net(Neural_Net):
         self.model_type = "Autoencoder_Transfer"
         self.model_path = self._construct_model_path(self.model_type)
         self.model_path_noEarlyStop = self._construct_model_path_noEarlyStop(self.model_type)
-        self.new_module = self.construct_new_module()
-        self.decoder_module = self.construct_decoder_module()
-        self.sourceTask_new_module = self.construct_new_module()
-        self.targetTask_new_module = self.construct_new_module()
+        self.feature_module = self._construct_feature_module()
+        self.decoder_module = self._construct_decoder_module()
+        self.sourcetask_optimizer_module = self._construct_optimizer_module(SOURCETASK)
+        self.targettask_optimizer_module = self._construct_optimizer_module(TARGETTASK)
         # for auto-encoder reconstruction loss
         self.reconstruct_loss_func = nn.MSELoss(reduction='mean')
         self._load_model(early_stop)
 
-    def construct_decoder_module(self):
+    def _construct_decoder_module(self):
         decoder_module = nn.ModuleList()
-        decoder_module.append(nn.Linear(self.feature_length, 2*N_LINKS*N_LINKS))
+        decoder_module.append(nn.Linear(self.feature_length, 30))
         decoder_module.append(nn.ReLU())
-        decoder_module.append(nn.Linear(2*N_LINKS*N_LINKS, N_LINKS*N_LINKS))
+        decoder_module.append(nn.Linear(30, 20))
+        decoder_module.append(nn.ReLU())
+        # three features to be reconstructed per BS: distance to UE, azimuth angle, elevation angle
+        decoder_module.append(nn.Linear(20, N_BS*3))
         return decoder_module
 
-    def sourceTask_powerControl(self, g):
-        x = self.preprocess_input(g)
-        inputs = torch.clone(x)
-        for lyr in self.new_module:
+    def sourcetask(self, x, channels):
+        x = self._preprocess_input(x)
+        for lyr in self.feature_module:
             x = lyr(x)
-        features = torch.clone(x)
-        # try to reconstruct inputs
+        features_reconstructed = torch.clone(x)
+        # try to reconstruct features
         for lyr in self.decoder_module:
+            features_reconstructed = lyr(features_reconstructed)
+        # optimize for the objective
+        for lyr in self.sourcetask_optimizer_module:
             x = lyr(x)
-        inputs_reconstructed = x
-        for lyr in self.sourceTask_new_module:
-            features = lyr(features)
-        pc = features
-        rates = self.compute_rates(pc, g)
-        obj = self.compute_objective(rates, SOURCETASK['Task'])
-        obj = torch.mean(obj)
-        return pc, obj, self.reconstruct_loss_func(inputs, inputs_reconstructed)
+        if SOURCETASK['Task'] == "Beamforming":
+            channel_gains = self._compute_beamformer_gains(x, channels)
+            x = channel_gains.sum(dim=1).mean()
+        return x, features_reconstructed
     
     # freeze parameters for transfer learning
     def freeze_parameters(self):
@@ -229,23 +230,26 @@ class Autoencoder_Transfer_Net(Neural_Net):
                 para.requires_grad = False
         return
 
-    def targetTask_powerControl(self, g):
-        x = self.preprocess_input(g)
-        for lyr in self.new_module:
+    def targettask(self, x, channels):
+        x = self._preprocess_input(x)
+        for lyr in self.feature_module:
             x = lyr(x)
-        for lyr in self.targetTask_new_module:
+        for lyr in self.targettask_optimizer_module:
             x = lyr(x)
-        rates = self.compute_rates(x, g)
-        obj = self.compute_objective(rates, TARGETTASK['Task'])
-        obj = torch.mean(obj)
-        return x, obj
+        if TARGETTASK['Task'] == "Beamforming":
+            channel_gains = self._compute_beamformer_gains(x, channels)
+            return channel_gains.sum(dim=1).mean()
+        return x # for localization
 
 if __name__ == "__main__":
     ae_transfer_net = Autoencoder_Transfer_Net()
     print("The number of features in the feature layer: ", ae_transfer_net.feature_length)
-    n_parameters = sum(p.numel() for p in ae_transfer_net.new_module.parameters())
+    n_parameters = sum(p.numel() for p in ae_transfer_net.feature_module.parameters())
     print("The feature module number of parameters: ", n_parameters)
-    n_parameters = sum(p.numel() for p in ae_transfer_net.sourceTask_new_module.parameters())
-    print("The optimizer module number of parameters: ", n_parameters)
+    n_parameters = sum(p.numel() for p in ae_transfer_net.sourcetask_optimizer_module.parameters())
+    print(f"The optimizer module number of parameters on task {SOURCETASK['Task']}: ", n_parameters)
+    n_parameters = sum(p.numel() for p in ae_transfer_net.targettask_optimizer_module.parameters())
+    print(f"The optimizer module number of parameters on task {TARGETTASK['Task']}: ", n_parameters)
     n_parameters = sum(p.numel() for p in ae_transfer_net.decoder_module.parameters())
     print("The decoder module number of parameters: ", n_parameters)
+    print("Script finished!")
