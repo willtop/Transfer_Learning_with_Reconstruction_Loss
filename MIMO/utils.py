@@ -32,3 +32,7 @@ def visualize_network(ax, ue_loc):
     # plot user equipment
     ax.scatter3D(xs=ue_loc[0], ys=ue_loc[1], zs=ue_loc[2], marker="*", s=50)
     return
+
+def generate_circular_gaussians(size_to_generate):
+    return np.random.normal(size=size_to_generate) + \
+            1j * np.random.normal(size=size_to_generate)

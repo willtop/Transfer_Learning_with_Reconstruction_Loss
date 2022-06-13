@@ -1,9 +1,8 @@
-# Script for evaluating D2D network objectives: sum rate or min rate
+# Script for evaluating MIMO network objectives: beamforming and localization
 
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
-from scipy.io import savemat
 from neural_nets import Regular_Net, Transfer_Net, Autoencoder_Transfer_Net
 from utils import *
 from setup import *
@@ -11,37 +10,33 @@ from setup import *
 VISUALIZE_ALLOCATIONS = False
 GP_INCLUDED = True
 EVALUATE_EARLY_STOP = False
+PLOT_STYLES = {
+    "Regular Learning": "m--",
+    "Conventional Transfer": "g-.",
+    "Transfer with Reconstruct": "r-",
+    "Random Localization": "k:",
+    "Random Beamformers": "k:",
+    "Perfect Beamformers": "y:"
+}
 
 if(__name__ =='__main__'):
-    g = np.load("Data/g_test_{}.npy".format(SETTING_STRING))
-    assert np.shape(g) == (N_TEST_SAMPLES, N_LINKS, N_LINKS), f"{np.shape(g)}"
-    print(f"[D2D] Evaluate {SETTING_STRING} over {N_TEST_SAMPLES} layouts.")
+    uelocs = np.load("Data/uelocs_test.npy")
+    channels = np.load("Data/channels.npy")
+    assert np.shape(uelocs) == (N_TEST_SAMPLES, 3) and \
+           np.shape(channels) == (N_TEST_SAMPLES, N_BS, N_BS_ANTENNAS)
+    print(f"[MIMO] Evaluate {SOURCETASK['Task']}->{TARGETTASK['Task']} over {N_TEST_SAMPLES} layouts.")
 
     regular_net, transfer_net, ae_transfer_net = \
          Regular_Net(EVALUATE_EARLY_STOP).to(DEVICE), \
          Transfer_Net(EVALUATE_EARLY_STOP).to(DEVICE), \
          Autoencoder_Transfer_Net(EVALUATE_EARLY_STOP).to(DEVICE)
-    power_controls, plot_colors, plot_linestyles, rates_all = {}, {}, {}, {}
-    plot_colors["Regular Learning"] = 'm'
-    plot_linestyles["Regular Learning"] = '--'
-    plot_colors["Conventional Transfer Learning"] = 'g'
-    plot_linestyles["Conventional Transfer Learning"] = '-.'
-    plot_colors["Autoencoder Transfer Learning"] = 'r'
-    plot_linestyles["Autoencoder Transfer Learning"] = '-'
-    plot_colors["Random Power"] = 'k'
-    plot_linestyles["Random Power"] = ':'
-    plot_colors["Full Power"] = 'y'
-    plot_linestyles["Full Power"] = ':'
 
-    for task in [SOURCETASK, TARGETTASK]:
-        print(f"Evaluating {task['Type']}: {task['Task']}...")
-        power_controls[task['Type']] = {}
-        if task['Task'] == "Sum-Rate":
-            optimal_benchmark = "FP"
-            # Fractional Programming
-            power_controls[task['Type']]["FP"] = FP_power_control(g)
-            plot_colors["FP"] = 'b'
-            plot_linestyles["FP"] = '--' 
+    print("<<<<<<<<<<<Evaluating Beamforming Performances>>>>>>>>>")
+    beamformers = {}
+    beamformers['Regular Learning'] = 
+    beamformers['Perfect Beamformers'] = channels/np.linalg.norm(channels, axis=-1, keepdims=True)
+    tmp = generate_circular_gaussians(size_to_generate=(N_TEST_SAMPLES, N_BS, N_BS_ANTENNAS))
+    beamformers['Random Beamformers'] = tmp/np.linalg.norm(tmp, axis=-1, keepdims=True)
         elif task['Task'] == "Min-Rate" and GP_INCLUDED:
             optimal_benchmark = "GP"
             # Geometric Programming

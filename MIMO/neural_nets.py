@@ -25,19 +25,12 @@ class Neural_Net(nn.Module):
         inputs = torch.view_as_real(inputs)
         inputs = inputs.view(-1, N_BS*N_PILOTS*2)
         return inputs
-    
-    def _compute_beamformer_gains(self, beamformers_raw, channels):
+
+    def _postprocess_beamformers(self, beamformers_raw):
         n_networks = beamformers_raw.size(0)
         assert beamformers_raw.size() == (n_networks, N_BS*N_BS_ANTENNAS*2)
-        assert channels.size() == (n_networks, N_BS, N_BS_ANTENNAS)
         beamformers_raw = torch.view_as_complex(beamformers_raw).view(n_networks, N_BS, N_BS_ANTENNAS)
-        # normalize beamformers to unit power
-        beamformers = beamformers_raw / beamformers_raw.norm(dim=-1, keepdim=True)
-        # compute beamformer gain across all BSs
-        channel_gains_tmp = torch.sum(beamformers * channels.conj(), dim=-1)
-        channel_gains = channel_gains.abs().pow(2)
-        assert channel_gains.size() == (n_networks, N_BS)
-        return channel_gains
+        return beamformers_raw / beamformers_raw.norm(dim=-1, keepdim=True)
 
     def sourcetask(self):
         raise NotImplementedError
@@ -120,27 +113,25 @@ class Regular_Net(Neural_Net):
         self.targettask_optimizer_module = self._construct_optimizer_module(TARGETTASK)
         self._load_model(early_stop)
 
-    def sourcetask(self, x, channels):
-        x = self._preprocess_input(x)
+    def sourcetask(self, x):
+        x = self._preprocess_inputs(x)
         for lyr in self.sourcetask_feature_module:
             x = lyr(x)
         for lyr  in self.sourcetask_optimizer_module:
             x = lyr(x)
         if SOURCETASK['Task'] == "Beamforming":
-            channel_gains = self._compute_beamformer_gains(x, channels)
-            return channel_gains.sum(dim=1).mean()
-        return x # for localization
+            x = self._postprocess_beamformers(x)
+        return x 
 
-    def targettask(self, x, channels):
-        x = self._preprocess_input(x)
+    def targettask(self, x):
+        x = self._preprocess_inputs(x)
         for lyr in self.targettask_feature_module:
             x = lyr(x)
         for lyr  in self.targettask_optimizer_module:
             x = lyr(x)
         if TARGETTASK['Task'] == "Beamforming":
-            channel_gains = self._compute_beamformer_gains(x, channels)
-            return channel_gains.sum(dim=1).mean()
-        return x # for localization
+            x = self._postprocess_beamformers(x)
+        return x
 
 
 class Transfer_Net(Neural_Net):
@@ -154,16 +145,15 @@ class Transfer_Net(Neural_Net):
         self.targettask_optimizer_module = self._construct_optimizer_module(TARGETTASK)
         self._load_model(early_stop)
 
-    def sourcetask(self, x, channels):
-        x = self.preprocess_input(x)
+    def sourcetask(self, x):
+        x = self._preprocess_inputs(x)
         for lyr in self.feature_module:
             x = lyr(x)
         for lyr  in self.sourcetask_optimizer_module:
             x = lyr(x)
         if SOURCETASK['Task'] == "Beamforming":
-            channel_gains = self._compute_beamformer_gains(x, channels)
-            return channel_gains.sum(dim=1).mean()
-        return x # for localization
+            x = self._postprocess_beamformers(x)
+        return x
 
     # freeze parameters for transfer learning
     def freeze_parameters(self):
@@ -173,15 +163,14 @@ class Transfer_Net(Neural_Net):
         return
 
     def targettask(self, x, channels):
-        x = self.preprocess_input(x)
+        x = self._preprocess_inputs(x)
         for lyr in self.feature_module:
             x = lyr(x)
         for lyr  in self.targettask_optimizer_module:
             x = lyr(x)
         if TARGETTASK['Task'] == "Beamforming":
-            channel_gains = self._compute_beamformer_gains(x, channels)
-            return channel_gains.sum(dim=1).mean()
-        return x # for localization
+            x = self._postprocess_beamformers(x)
+        return x
 
 class Autoencoder_Transfer_Net(Neural_Net):
     def __init__(self, early_stop=True):
@@ -205,8 +194,8 @@ class Autoencoder_Transfer_Net(Neural_Net):
         decoder_module.append(nn.Linear(20, N_BS*N_FACTORS))
         return decoder_module
 
-    def sourcetask(self, x, channels):
-        x = self._preprocess_input(x)
+    def sourcetask(self, x):
+        x = self._preprocess_inputs(x)
         for lyr in self.feature_module:
             x = lyr(x)
         factors_reconstructed = torch.clone(x)
@@ -217,8 +206,7 @@ class Autoencoder_Transfer_Net(Neural_Net):
         for lyr in self.sourcetask_optimizer_module:
             x = lyr(x)
         if SOURCETASK['Task'] == "Beamforming":
-            channel_gains = self._compute_beamformer_gains(x, channels)
-            x = channel_gains.sum(dim=1).mean()
+            x = self._postprocess_beamformers(x)
         return x, factors_reconstructed
     
     # freeze parameters for transfer learning
@@ -229,15 +217,14 @@ class Autoencoder_Transfer_Net(Neural_Net):
         return
 
     def targettask(self, x, channels):
-        x = self._preprocess_input(x)
+        x = self._preprocess_inputssss(x)
         for lyr in self.feature_module:
             x = lyr(x)
         for lyr in self.targettask_optimizer_module:
             x = lyr(x)
         if TARGETTASK['Task'] == "Beamforming":
-            channel_gains = self._compute_beamformer_gains(x, channels)
-            return channel_gains.sum(dim=1).mean()
-        return x # for localization
+            x = self._postprocess_beamformers(x)
+        return x
 
 if __name__ == "__main__":
     ae_transfer_net = Autoencoder_Transfer_Net()

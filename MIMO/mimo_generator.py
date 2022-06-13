@@ -98,10 +98,14 @@ if __name__=="__main__":
         np.save("Trained_Models/Channels_Stats/channels_train_mean.npy", np.mean(channels[:SOURCETASK['Train']], axis=0))
         np.save("Trained_Models/Channels_Stats/channels_train_std.npy", np.std(channels[:SOURCETASK['Train']], axis=0))
         # Randomly generate uplink pilots used by the user-equipment (same across all networks)
-        pilots = np.random.normal(size=N_PILOTS) + 1j*np.random.normal(size=N_PILOTS)
+        pilots = utils.generate_circular_gaussians(size_to_generate=(N_PILOTS,))
+        # normalize each pilot to unit power
+        pilots = pilots / np.abs(pilots)
         np.save("Trained_Models/pilots.npy", pilots)
         # Randomly generate uplink pilots sensing vectors for all base-stations
-        sensing_vectors = np.random.normal(size=(N_BS, N_PILOTS, N_BS_ANTENNAS)) + 1j * np.random.normal(size=(N_BS, N_PILOTS, N_BS_ANTENNAS))
+        sensing_vectors = utils.generate_circular_gaussians(size_to_generate=(N_BS, N_PILOTS, N_BS_ANTENNAS))
+        # normalize the sensing vectors to be uniform power within each base-station
+        sensing_vectors = sensing_vectors / np.linalg.norm(sensing_vectors, axis=-1, keepdims=True)
         np.save("Trained_Models/sensing_vectors.npy", sensing_vectors)
 
     if GENERATE_DATA_TARGETTASK:
