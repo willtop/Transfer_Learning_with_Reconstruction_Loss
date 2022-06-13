@@ -25,6 +25,8 @@ WAVELENGTH = 2.998e8/CARRIER_FREQUENCY
 _NOISE_dBm_Hz = -150
 NOISE_POWER = np.power(10, ((_NOISE_dBm_Hz-30)/10)) * BANDWIDTH
 RICIAN_FACTOR = 10
+# design choice: number of factors to be reconstructed
+N_FACTORS = 3   # distance to BS, sin_theta_cos_phi, cos_theta_cos_phi
 
 # ensure the number of antennas is a perfect square, for 2D array
 assert np.floor(np.sqrt(N_BS_ANTENNAS))**2 == N_BS_ANTENNAS

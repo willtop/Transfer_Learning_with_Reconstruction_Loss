@@ -201,8 +201,8 @@ class Autoencoder_Transfer_Net(Neural_Net):
         decoder_module.append(nn.ReLU())
         decoder_module.append(nn.Linear(30, 20))
         decoder_module.append(nn.ReLU())
-        # three features to be reconstructed per BS: distance to UE, azimuth angle, elevation angle
-        decoder_module.append(nn.Linear(20, N_BS*3))
+        # factors to be reconstructed aggregated over all BSs
+        decoder_module.append(nn.Linear(20, N_BS*N_FACTORS))
         return decoder_module
 
     def sourcetask(self, x, channels):

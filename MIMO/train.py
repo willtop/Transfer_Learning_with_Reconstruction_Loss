@@ -20,30 +20,30 @@ def plot_training_curves():
 
     fig, axes = plt.subplots(2,2)
     # Plot for source task
-    train_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/train_losses_sourceTask_{SETTING_STRING}.npy")
-    valid_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/valid_losses_sourceTask_{SETTING_STRING}.npy")
+    train_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/train_losses_sourcetask_{SOURCETASK['Task']}.npy")
+    valid_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/valid_losses_sourcetask_{SOURCETASK['Task']}.npy")
     axes[0][0].set_xlabel("Training Steps", fontsize=label_fontsize)
-    axes[0][0].set_ylabel("Training Loss (Source Task)", fontsize=label_fontsize)
+    axes[0][0].set_ylabel(f"Training Loss (Source Task: {SOURCETASK['Task']})", fontsize=label_fontsize)
     axes[0][0].plot(train_losses[:,0], 'g', linewidth=line_width, label="Regular Learning")
     axes[0][0].plot(train_losses[:,1], 'b', linewidth=line_width, label="Conventional Transfer")
     axes[0][0].plot(train_losses[:,2], 'r', linewidth=line_width, label="Transfer with Reconstruct")
     axes[0][0].plot(train_losses[:,3], 'r--', linewidth=line_width, label="Transfer with Reconstruct (Total Loss)")
     axes[0][1].set_xlabel("Training Steps", fontsize=label_fontsize)
-    axes[0][1].set_ylabel("Validation Loss (Source Task)", fontsize=label_fontsize)
+    axes[0][1].set_ylabel(f"Validation Loss (Source Task: {SOURCETASK['Task']})", fontsize=label_fontsize)
     axes[0][1].plot(valid_losses[:,0], 'g', linewidth=line_width, label="Regular Learning")
     axes[0][1].plot(valid_losses[:,1], 'b', linewidth=line_width, label="Conventional Transfer")
     axes[0][1].plot(valid_losses[:,2], 'r', linewidth=line_width, label="Transfer with Reconstruct")
     axes[0][1].plot(valid_losses[:,3], 'r--', linewidth=line_width, label="Transfer with Reconstruct (Total Loss)")
     # Plot for target task
-    train_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/train_losses_targetTask_{SETTING_STRING}.npy")
-    valid_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/valid_losses_targetTask_{SETTING_STRING}.npy")
+    train_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/train_losses_targettask_{TARGETTASK['Task']}.npy")
+    valid_losses = np.load(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/valid_losses_targettask_{TARGETTASK['Task']}.npy")
     axes[1][0].set_xlabel("Training Steps", fontsize=label_fontsize)
-    axes[1][0].set_ylabel("Training Loss (Target Task)", fontsize=label_fontsize)
+    axes[1][0].set_ylabel(f"Training Loss (Target Task: {TARGETTASK['Task']})", fontsize=label_fontsize)
     axes[1][0].plot(train_losses[:,0], 'g', linewidth=line_width, label="Regular Learning")
     axes[1][0].plot(train_losses[:,1], 'b', linewidth=line_width, label="Conventional Transfer")
     axes[1][0].plot(train_losses[:,2], 'r', linewidth=line_width, label="Transfer with Reconstruct")
     axes[1][1].set_xlabel("Training Steps", fontsize=label_fontsize)
-    axes[1][1].set_ylabel("Validation Loss (Target Task)", fontsize=label_fontsize)
+    axes[1][1].set_ylabel(f"Validation Loss (Target Task: {TARGETTASK['Task']})", fontsize=label_fontsize)
     axes[1][1].plot(valid_losses[:,0], 'g', linewidth=line_width, label="Regular Learning")
     axes[1][1].plot(valid_losses[:,1], 'b', linewidth=line_width, label="Conventional Transfer")
     axes[1][1].plot(valid_losses[:,2], 'r', linewidth=line_width, label="Transfer with Reconstruct")
@@ -77,21 +77,22 @@ if(__name__=="__main__"):
         plot_training_curves()
         exit(0)
 
-
+    print(f"<<<<<<<<<<<<<<<<<<<<<<<[{SOURCETASK['Task']}]->[{TARGETTASK['Task']}]>>>>>>>>>>>>>>>>>>>>>>")
     """ 
     Source-Task Training 
     """
-    print(f"<<<<<<<<<<<<<<<<<<<<<<<[{SOURCETASK['Task']}]->[{TARGETTASK['Task']}]>>>>>>>>>>>>>>>>>>>>>>")
     regular_net, transfer_net, ae_transfer_net = \
             Regular_Net().to(DEVICE), Transfer_Net().to(DEVICE), Autoencoder_Transfer_Net().to(DEVICE)
-    print("[Source Task] Loading data...")
+    print(f"[Source Task {SOURCETASK['Task']}] Loading data...")
     uelocs = np.load("Data/uelocs_sourcetask.npy")
     channels = np.load("Data/channels_sourcetask.npy")
     factors = np.load("Data/factors_sourcetask.npy")
     measures = utils.obtain_measured_uplink_signals(channels)
-    assert np.shape(uelocs)[0] == np.shape(channels)[0] == SOURCETASK['Train'] + SOURCETASK['Valid']
+    assert np.shape(uelocs)[0] == np.shape(channels)[0] == np.shape(factors)[0] == \
+                SOURCETASK['Train'] + SOURCETASK['Valid']
     uelocs_train, uelocs_valid = uelocs[:SOURCETASK['Train']], uelocs[-SOURCETASK['Valid']:]
     channels_train, channels_valid = channels[:SOURCETASK['Train']], channels[-SOURCETASK['Valid']:]
+    factors_train, factors_valid = factors[:SOURCETASK['Train']], factors[-SOURCETASK['Valid']:]
     measures_train, measures_valid = measures[:SOURCETASK['Train']], measures[-SOURCETASK['Valid']:]
     n_minibatches = int(SOURCETASK['Train'] / SOURCETASK['Minibatch_Size'])
     print(f"[Source Task on {SOURCETASK['Task']}] Data Loaded! With {SOURCETASK['Train']} training samples ({n_minibatches} minibatches) and {SOURCETASK['Valid']} validation samples.")
@@ -104,8 +105,8 @@ if(__name__=="__main__"):
     train_loss_eps, valid_loss_eps = [], []
     for i in trange(1, SOURCETASK['Epochs']+1):
         regular_loss_ep, transfer_loss_ep, ae_transfer_loss_ep, ae_transfer_loss_combined_ep = 0, 0, 0, 0
-        uelocs_batches, channels_batches, measures_batches = \
-            shuffle_divide_batches(n_minibatches, uelocs_train, channels_train, measures_train)
+        uelocs_batches, channels_batches, factors_batches, measures_batches = \
+            shuffle_divide_batches(n_minibatches, uelocs_train, channels_train, factors_train, measures_train)
         for j in range(n_minibatches):
             optimizer_regular.zero_grad()
             optimizer_transfer.zero_grad()
@@ -113,16 +114,16 @@ if(__name__=="__main__"):
             # Regular Net
             outputs = regular_net.sourcetask(torch.tensor(measures_batches[j], dtype=torch.cfloat).to(DEVICE), \
                                              torch.tensor(channels_batches[j], dtype=torch.cfloat).to(DEVICE))
-            regular_loss = -outputs if SOURCETASK['Task']=="Beamforming" else LOCALIZATION_LOSS_FUNC(outputs, uelocs_batches)
+            regular_loss = -outputs if SOURCETASK['Task']=="Beamforming" else LOCALIZATION_LOSS_FUNC(outputs, torch.tensor(uelocs_batches,dtype=torch.float32))
             # Transfer Net
             outputs = transfer_net.sourcetask(torch.tensor(measures_batches[j], dtype=torch.cfloat).to(DEVICE), \
                                              torch.tensor(channels_batches[j], dtype=torch.cfloat).to(DEVICE))
-            transfer_loss = -outputs if SOURCETASK['Task']=="Beamforming" else LOCALIZATION_LOSS_FUNC(outputs, uelocs_batches)
+            transfer_loss = -outputs if SOURCETASK['Task']=="Beamforming" else LOCALIZATION_LOSS_FUNC(outputs, torch.tensor(uelocs_batches,dtype=torch.float32))
             # AutoEncoder Transfer Net
             outputs, factors_reconstructed = ae_transfer_net.sourcetask(torch.tensor(measures_batches[j], dtype=torch.cfloat).to(DEVICE), \
-                                             torch.tensor(channels_batches[j], dtype=torch.cfloat).to(DEVICE))
-            ae_transfer_loss = -outputs if SOURCETASK['Task']=="Beamforming" else LOCALIZATION_LOSS_FUNC(outputs, uelocs_batches)
-            ae_transfer_loss_combined = ae_transfer_loss + SOURCETASK['Loss_Combine_Weight'] * RECONSTRUCTION_LOSS_FUNC(factors_reconstructed, factors_batches)
+                                                                        torch.tensor(channels_batches[j], dtype=torch.cfloat).to(DEVICE))
+            ae_transfer_loss = -outputs if SOURCETASK['Task']=="Beamforming" else LOCALIZATION_LOSS_FUNC(outputs, torch.tensor(uelocs_batches,dtype=torch.float32))
+            ae_transfer_loss_combined = ae_transfer_loss + SOURCETASK['Loss_Combine_Weight'] * RECONSTRUCTION_LOSS_FUNC(factors_reconstructed, torch.tensor(factors_batches,dtype=torch.float32).view(-1, N_BS*N_FACTORS))
             # Training and recording loss
             regular_loss.backward(); optimizer_regular.step()
             transfer_loss.backward(); optimizer_transfer.step()
@@ -134,13 +135,16 @@ if(__name__=="__main__"):
             if (j+1) % min(50,n_minibatches) == 0:
                 # Validation
                 with torch.no_grad():
-                    _, objAvg = regular_net.sourceTask_powerControl(torch.tensor(g_valid, dtype=torch.float32).to(DEVICE))
-                    regular_loss = -objAvg.item()
-                    _, objAvg = transfer_net.sourceTask_powerControl(torch.tensor(g_valid, dtype=torch.float32).to(DEVICE))
-                    transfer_loss = -objAvg.item()
-                    _, objAvg, reconstruct_loss = ae_transfer_net.sourceTask_powerControl(torch.tensor(g_valid, dtype=torch.float32).to(DEVICE))
-                    ae_transfer_loss = -objAvg.item()
-                    ae_transfer_loss_combined = ae_transfer_loss + SOURCETASK['Loss_Combine_Weight'] * reconstruct_loss.item()
+                    outputs = regular_net.sourcetask(torch.tensor(measures_valid, dtype=torch.float32).to(DEVICE), \
+                                                     torch.tensor(channels_valid, dtype=torch.float32).to(DEVICE))
+                    regular_loss = -outputs.item() if SOURCETASK['Task']=="Beamforming" else LOCALIZATION_LOSS_FUNC(outputs, torch.tensor(uelocs_valid,dtype=torch.float32)).item()
+                    outputs = transfer_net.sourcetask(torch.tensor(measures_valid, dtype=torch.float32).to(DEVICE), \
+                                                      torch.tensor(channels_valid, dtype=torch.float32).to(DEVICE))
+                    transfer_loss = -outputs.item() if SOURCETASK['Task']=="Beamforming" else LOCALIZATION_LOSS_FUNC(outputs, torch.tensor(uelocs_valid,dtype=torch.float32)).item()
+                    outputs, factors_reconstructed = ae_transfer_net.sourcetask(torch.tensor(measures_valid, dtype=torch.float32).to(DEVICE), \
+                                                                          torch.tensor(channels_valid, dtype=torch.float32).to(DEVICE))
+                    ae_transfer_loss = -outputs.item() if SOURCETASK['Task']=="Beamforming" else LOCALIZATION_LOSS_FUNC(outputs, torch.tensor(uelocs_valid,dtype=torch.float32)).item()
+                    ae_transfer_loss_combined = ae_transfer_loss + SOURCETASK['Loss_Combine_Weight'] * RECONSTRUCTION_LOSS_FUNC(factors_reconstructed, torch.tensor(factors_valid,dtype=torch.float32).view(-1, N_BS*N_FACTORS)).item()
                 train_loss_eps.append([regular_loss_ep/(j+1), transfer_loss_ep/(j+1), ae_transfer_loss_ep/(j+1), ae_transfer_loss_combined_ep/(j+1)])
                 valid_loss_eps.append([regular_loss, transfer_loss, ae_transfer_loss, ae_transfer_loss_combined])
                 print("[Source Task][Regular] Tr:{:6.3e}; Va:{:6.3e} [Transfer] Tr: {:6.3e}; Va:{:6.3e} [AE Transfer] Tr: {:6.3e}; Va: {:6.3e}".format(
@@ -155,23 +159,29 @@ if(__name__=="__main__"):
                 if (ae_transfer_loss_combined < ae_transfer_loss_combined_min):
                     ae_transfer_net.save_model(early_stop=True)
                     ae_transfer_loss_combined_min = ae_transfer_loss_combined    
-                np.save(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/train_losses_sourceTask_{SETTING_STRING}.npy", np.array(train_loss_eps))
-                np.save(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/valid_losses_sourceTask_{SETTING_STRING}.npy", np.array(valid_loss_eps))
+                np.save(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/train_losses_sourcetask_{SOURCETASK['Task']}.npy", np.array(train_loss_eps))
+                np.save(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/valid_losses_sourceTask_{SOURCETASK['Task']}.npy", np.array(valid_loss_eps))
 
     """ 
     Target Task Training
     """
-    print("[Target Task] Loading data...")
-    g = np.load(f"Data/g_targetTask_{SETTING_STRING}.npy")
-    assert np.shape(g)[0] == TARGETTASK['Train'] + TARGETTASK['Valid']
-    g_train, g_valid = g[:TARGETTASK['Train']], g[-TARGETTASK['Valid']:]
-    assert TARGETTASK['Train'] % TARGETTASK['Minibatch_Size'] == 0
-    n_minibatches = int(TARGETTASK['Train'] / TARGETTASK['Minibatch_Size'])
-    print(f"[Target Task] Data Loaded! With {TARGETTASK['Train']} training samples ({n_minibatches} minibatches) and {TARGETTASK['Valid']} validation samples.")
-
     # Create neural network objects again so they load weights from previous early stopping best checkpoint on source task
     regular_net, transfer_net, ae_transfer_net = \
             Regular_Net().to(DEVICE), Transfer_Net().to(DEVICE), Autoencoder_Transfer_Net().to(DEVICE)
+    print(f"[Target Task {TARGETTASK['Task']}] Loading data...")
+    uelocs = np.load("Data/uelocs_targettask.npy")
+    channels = np.load("Data/channels_targettask.npy")
+    factors = np.load("Data/factors_targettask.npy")
+    measures = utils.obtain_measured_uplink_signals(channels)
+    assert np.shape(uelocs)[0] == np.shape(channels)[0] == np.shape(factors)[0] == \
+                TARGETTASK['Train'] + TARGETTASK['Valid']
+    uelocs_train, uelocs_valid = uelocs[:TARGETTASK['Train']], uelocs[-TARGETTASK['Valid']:]
+    channels_train, channels_valid = channels[:TARGETTASK['Train']], channels[-TARGETTASK['Valid']:]
+    factors_train, factors_valid = factors[:TARGETTASK['Train']], factors[-TARGETTASK['Valid']:]
+    measures_train, measures_valid = measures[:TARGETTASK['Train']], measures[-TARGETTASK['Valid']:]
+    n_minibatches = int(TARGETTASK['Train'] / TARGETTASK['Minibatch_Size'])
+    print(f"[Target Task on {TARGETTASK['Task']}] Data Loaded! With {TARGETTASK['Train']} training samples ({n_minibatches} minibatches) and {TARGETTASK['Valid']} validation samples.")
+    
     print("[Target Task] Freeze the neural network parameters up to the factor layers...")
     transfer_net.freeze_parameters()
     ae_transfer_net.freeze_parameters()
@@ -183,20 +193,24 @@ if(__name__=="__main__"):
     train_loss_eps, valid_loss_eps = [], []
     for i in trange(1, TARGETTASK['Epochs']+1):
         regular_loss_ep, transfer_loss_ep, ae_transfer_loss_ep = 0, 0, 0
-        g_batches = shuffle_divide_batches(g_train, n_minibatches)
+        uelocs_batches, channels_batches, factors_batches, measures_batches = \
+            shuffle_divide_batches(n_minibatches, uelocs_train, channels_train, factors_train, measures_train)
         for j in range(n_minibatches):
             optimizer_regular.zero_grad()
             optimizer_transfer.zero_grad()
             optimizer_ae_transfer.zero_grad()
             # Regular Net
-            _, objAvg = regular_net.targetTask_powerControl(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
-            regular_loss = -objAvg
+            outputs = regular_net.targettask(torch.tensor(measures_batches[j], dtype=torch.cfloat).to(DEVICE), \
+                                             torch.tensor(channels_batches[j], dtype=torch.cfloat).to(DEVICE))
+            regular_loss = -outputs if TARGETTASK['Task']=="Beamforming" else LOCALIZATION_LOSS_FUNC(outputs, torch.tensor(uelocs_batches, dtype=torch.float32))
             # Transfer Net
-            _, objAvg = transfer_net.targetTask_powerControl(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
-            transfer_loss = -objAvg
+            outputs = transfer_net.targettask(torch.tensor(measures_batches[j], dtype=torch.cfloat).to(DEVICE), \
+                                             torch.tensor(channels_batches[j], dtype=torch.cfloat).to(DEVICE))
+            transfer_loss = -outputs if TARGETTASK['Task']=="Beamforming" else LOCALIZATION_LOSS_FUNC(outputs, torch.tensor(uelocs_batches, dtype=torch.float32))
             # AutoEncoder Transfer Net
-            _, objAvg = ae_transfer_net.targetTask_powerControl(torch.tensor(g_batches[j], dtype=torch.float32).to(DEVICE))
-            ae_transfer_loss = -objAvg
+            outputs = ae_transfer_net.targettask(torch.tensor(measures_batches[j], dtype=torch.cfloat).to(DEVICE), \
+                                             torch.tensor(channels_batches[j], dtype=torch.cfloat).to(DEVICE))
+            ae_transfer_loss = -outputs if TARGETTASK['Task']=="Beamforming" else LOCALIZATION_LOSS_FUNC(outputs, torch.tensor(uelocs_batches, dtype=torch.float32))
             # Training and recording loss
             regular_loss.backward(); optimizer_regular.step()
             transfer_loss.backward(); optimizer_transfer.step()
@@ -206,12 +220,15 @@ if(__name__=="__main__"):
             ae_transfer_loss_ep += ae_transfer_loss.item()
         # Validation
         with torch.no_grad():
-            _, objAvg = regular_net.targetTask_powerControl(torch.tensor(g_valid, dtype=torch.float32).to(DEVICE))
-            regular_loss = -objAvg.item()
-            _, objAvg = transfer_net.targetTask_powerControl(torch.tensor(g_valid, dtype=torch.float32).to(DEVICE))
-            transfer_loss = -objAvg.item()
-            _, objAvg = ae_transfer_net.targetTask_powerControl(torch.tensor(g_valid, dtype=torch.float32).to(DEVICE))
-            ae_transfer_loss = -objAvg.item()
+            outputs = regular_net.targettask(torch.tensor(measures_valid, dtype=torch.cfloat).to(DEVICE), \
+                                                       torch.tensor(channels_valid, dtype=torch.cfloat).to(DEVICE))
+            regular_loss = -outputs.item() if TARGETTASK['Task']=="Beamforming" else LOCALIZATION_LOSS_FUNC(outputs, torch.tensor(uelocs_valid, dtype=torch.float32)).item()
+            outputs = transfer_net.targettask(torch.tensor(measures_valid, dtype=torch.cfloat).to(DEVICE), \
+                                                       torch.tensor(channels_valid, dtype=torch.cfloat).to(DEVICE))
+            transfer_loss = -outputs.item() if TARGETTASK['Task']=="Beamforming" else LOCALIZATION_LOSS_FUNC(outputs, torch.tensor(uelocs_valid, dtype=torch.float32)).item()
+            outputs = ae_transfer_net.targettask(torch.tensor(measures_valid, dtype=torch.cfloat).to(DEVICE), \
+                                                       torch.tensor(channels_valid, dtype=torch.cfloat).to(DEVICE))
+            ae_transfer_loss = -outputs.item() if TARGETTASK['Task']=="Beamforming" else LOCALIZATION_LOSS_FUNC(outputs, torch.tensor(uelocs_valid, dtype=torch.float32)).item()
         train_loss_eps.append([regular_loss_ep/(j+1), transfer_loss_ep/(j+1), ae_transfer_loss_ep/(j+1)])
         valid_loss_eps.append([regular_loss, transfer_loss, ae_transfer_loss])
         print("[Target Task][Regular] Tr:{:6.3e}; Va:{:6.3e} [Transfer] Tr: {:6.3e}; Va:{:6.3e} [AE Transfer] Tr: {:6.3e}; Va: {:6.3e}".format(
@@ -230,7 +247,7 @@ if(__name__=="__main__"):
         regular_net.save_model(early_stop=False)
         transfer_net.save_model(early_stop=False)
         ae_transfer_net.save_model(early_stop=False)
-        np.save(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/train_losses_targetTask_{SETTING_STRING}.npy", np.array(train_loss_eps))
-        np.save(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/valid_losses_targetTask_{SETTING_STRING}.npy", np.array(valid_loss_eps))
+        np.save(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/train_losses_targettask_{TARGETTASK['Task']}.npy", np.array(train_loss_eps))
+        np.save(f"Trained_Models/{SOURCETASK['Task']}-to-{TARGETTASK['Task']}/valid_losses_targettask_{TARGETTASK['Task']}.npy", np.array(valid_loss_eps))
 
     print(f"[{SOURCETASK['Task']}]->[{TARGETTASK['Task']}] Training finished!")
