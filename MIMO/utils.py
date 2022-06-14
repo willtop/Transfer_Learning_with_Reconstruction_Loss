@@ -20,7 +20,13 @@ def obtain_measured_uplink_signals(channels):
         signals.append(np.expand_dims(signals_oneBS,axis=1))
     signals = np.concatenate(signals, axis=1)
     assert np.shape(signals)==(n_networks, N_BS, N_PILOTS)
-    return signals
+    # add in noise
+    # assume uplink and downlink with same noise level
+    noises = generate_circular_gaussians(size_to_generate=(n_networks, N_BS, N_PILOTS))
+    noises = noises / np.abs(noises) * np.sqrt(NOISE_POWER)
+    measures = signals + noises
+    assert np.shape(measures)==(n_networks, N_BS, N_PILOTS)
+    return measures
 
 def visualize_network(ax, ue_loc):
     assert np.shape(ue_loc) == (3,)

@@ -58,7 +58,8 @@ def plot_training_curves():
 # Pytorch computation
 def compute_beamformer_gains(beamformers, channels):
     n_networks = beamformers.size(0)
-    assert channels.size() == (n_networks, N_BS, N_BS_ANTENNAS)
+    assert channels.size() == (n_networks, N_BS, N_BS_ANTENNAS) and \
+           beamformers.size() == (n_networks, N_BS, N_BS_ANTENNAS)
     # ensure beamformers are normalized to unit power
     beamformer_powers = beamformers.norm(dim=-1).flatten()
     assert torch.all(beamformer_powers<1.01) and \
