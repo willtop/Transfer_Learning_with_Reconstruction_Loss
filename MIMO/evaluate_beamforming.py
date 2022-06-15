@@ -41,7 +41,7 @@ def compute_snrs(gains):
 
 if(__name__ =='__main__'):
     uelocs = np.load("Data/uelocs_test.npy")
-    channels = np.load("Data/channels.npy")
+    channels = np.load("Data/channels_test.npy")
     assert np.shape(uelocs) == (N_TEST_SAMPLES, 3) and \
            np.shape(channels) == (N_TEST_SAMPLES, N_BS, N_BS_ANTENNAS)
     print(f"[MIMO] Evaluate {SOURCETASK['Task']}->{TARGETTASK['Task']} over {N_TEST_SAMPLES} layouts.")
@@ -60,7 +60,8 @@ if(__name__ =='__main__'):
     if SOURCETASK['Task'] == "Beamforming":
         beamformers_all['Regular Learning'] = regular_net.sourcetask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE)).detach().cpu().numpy()
         beamformers_all['Conventional Transfer'] = transfer_net.sourcetask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE)).detach().cpu().numpy()
-        beamformers_all['Transfer with Reconstruct'] = ae_transfer_net.sourcetask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE)).detach().cpu().numpy()
+        tmp, _ = ae_transfer_net.sourcetask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE))
+        beamformers_all['Transfer with Reconstruct'] = tmp.detach().cpu().numpy()     
     else:
         beamformers_all['Regular Learning'] = regular_net.targettask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE)).detach().cpu().numpy()
         beamformers_all['Conventional Transfer'] = transfer_net.targettask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE)).detach().cpu().numpy()
@@ -76,7 +77,8 @@ if(__name__ =='__main__'):
         snrs = compute_snrs(gains)
         assert np.shape(gains) == (N_TEST_SAMPLES, N_BS) and \
                np.shape(snrs) == (N_TEST_SAMPLES, )
-        gains_all[method_key] = gains
+        # track all BSs among all layouts, flatten here as not caring about grouping of BSs per layout
+        gains_all[method_key] = gains.flatten()
         snrs_all[method_key] = snrs
         
     # reiterate to get the percentage w.r.t. perfect beamformers
@@ -100,7 +102,7 @@ if(__name__ =='__main__'):
     plt.grid(linestyle="dotted")
     plt.ylim(bottom=0)
     for method_key, gains in gains_all.items():
-        plt.plot(np.sort(gains), np.arange(1,N_TEST_SAMPLES+1)/N_TEST_SAMPLES, PLOT_STYLES[method_key], linewidth=2.0, label=method_key)
+        plt.plot(np.sort(gains), np.arange(1,N_TEST_SAMPLES*N_BS+1)/N_TEST_SAMPLES*N_BS, PLOT_STYLES[method_key], linewidth=2.0, label=method_key)
     plt.xlim(left=lowerbound_plot/1e6, right=upperbound_plot/1e6)
     plt.legend(prop={'size':20}, loc='lower right')
     plt.subplots_adjust(left=0.1, right=0.95, bottom=0.1, top=0.95)

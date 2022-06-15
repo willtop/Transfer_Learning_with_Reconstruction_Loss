@@ -3,6 +3,7 @@
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
+from mpl_toolkits import mplot3d
 from neural_nets import Regular_Net, Transfer_Net, Autoencoder_Transfer_Net
 from utils import *
 from setup import *
@@ -32,7 +33,7 @@ def compute_localization_errors(uelocs_predicted, uelocs):
 
 if(__name__ =='__main__'):
     uelocs = np.load("Data/uelocs_test.npy")
-    channels = np.load("Data/channels.npy")
+    channels = np.load("Data/channels_test.npy")
     assert np.shape(uelocs) == (N_TEST_SAMPLES, 3) and \
            np.shape(channels) == (N_TEST_SAMPLES, N_BS, N_BS_ANTENNAS)
     print(f"[MIMO] Evaluate {SOURCETASK['Task']}->{TARGETTASK['Task']} over {N_TEST_SAMPLES} layouts.")
@@ -51,7 +52,8 @@ if(__name__ =='__main__'):
     if SOURCETASK['Task'] == "Localization":
         uelocs_predicted_all['Regular Learning'] = regular_net.sourcetask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE)).detach().cpu().numpy()
         uelocs_predicted_all['Conventional Transfer'] = transfer_net.sourcetask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE)).detach().cpu().numpy()
-        uelocs_predicted_all['Transfer with Reconstruct'] = ae_transfer_net.sourcetask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE)).detach().cpu().numpy()
+        tmp, _ = ae_transfer_net.sourcetask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE))
+        uelocs_predicted_all['Transfer with Reconstruct'] = tmp.detach().cpu().numpy()
     else:
         uelocs_predicted_all['Regular Learning'] = regular_net.targettask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE)).detach().cpu().numpy()
         uelocs_predicted_all['Conventional Transfer'] = transfer_net.targettask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE)).detach().cpu().numpy()
@@ -91,10 +93,10 @@ if(__name__ =='__main__'):
     # Visualize localization results by each method
     rand_idxes = np.random.randint(N_TEST_SAMPLES, size=3)    
     for id in rand_idxes:
-        plt.title("Localization Results on Test Layout")
+        fig = plt.figure()
         # plot network
         ueloc = uelocs[id]
-        ax = plt.gca()
+        ax = fig.add_subplot(1,1,1,projection="3d")
         visualize_network(ax, ueloc)
         for method_key, uelocs_predicted in uelocs_predicted_all.items():
             ueloc_predicted = uelocs_predicted[id]

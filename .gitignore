@@ -133,6 +133,7 @@ Data/*
 D2D/Data/*
 MNIST/Data/*
 MNIST/SanityChecks/Data_Checks/*
+MIMO/Data/*
 Data_Checks/*
 !D2D/Data/GP*
 !D2D/Data/g_test*

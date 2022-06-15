@@ -16,8 +16,8 @@ class Neural_Net(nn.Module):
         self.model_path_noEarlyStop = None
         # general attributes
         self.base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Trained_Models")
-        self.channels_mean = torch.tensor(np.load(os.path.join(self.base_dir, "Channels_Stats", "channels_train_mean.npy")),dtype=torch.float32).to(DEVICE)
-        self.channels_std = torch.tensor(np.load(os.path.join(self.base_dir, "Channels_Stats", "channels_train_std.npy")),dtype=torch.float32).to(DEVICE)
+        self.channels_mean = torch.tensor(np.load(os.path.join(self.base_dir, "Channels_Stats", "channels_train_mean.npy")),dtype=torch.cfloat).to(DEVICE)
+        self.channels_std = torch.tensor(np.load(os.path.join(self.base_dir, "Channels_Stats", "channels_train_std.npy")),dtype=torch.cfloat).to(DEVICE)
 
     def _preprocess_inputs(self, inputs):
         assert inputs.ndim == 3
@@ -29,7 +29,7 @@ class Neural_Net(nn.Module):
     def _postprocess_beamformers(self, beamformers_raw):
         n_networks = beamformers_raw.size(0)
         assert beamformers_raw.size() == (n_networks, N_BS*N_BS_ANTENNAS*2)
-        beamformers_raw = torch.view_as_complex(beamformers_raw).view(n_networks, N_BS, N_BS_ANTENNAS)
+        beamformers_raw = torch.view_as_complex(beamformers_raw.view(n_networks, N_BS, N_BS_ANTENNAS, 2))
         return beamformers_raw / beamformers_raw.norm(dim=-1, keepdim=True)
 
     # raw localization outputs 0~1
@@ -66,30 +66,28 @@ class Neural_Net(nn.Module):
     # Modules to compose different types of neural net
     def _construct_feature_module(self):
         new_module = nn.ModuleList()
-        new_module.append(nn.Linear(N_BS*N_PILOTS*2, int(1.5*N_BS*N_BS_ANTENNAS)))
+        new_module.append(nn.Linear(N_BS*N_PILOTS*2, int(2*N_BS*N_BS_ANTENNAS)))
         new_module.append(nn.ReLU())
-        new_module.append(nn.Linear(int(1.5*N_BS*N_BS_ANTENNAS), int(1.5*N_BS*N_BS_ANTENNAS)))
+        new_module.append(nn.Linear(int(2*N_BS*N_BS_ANTENNAS), int(2*N_BS*N_BS_ANTENNAS)))
         new_module.append(nn.ReLU())
-        new_module.append(nn.Linear(int(1.5*N_BS*N_BS_ANTENNAS), self.feature_length))
+        new_module.append(nn.Linear(int(2*N_BS*N_BS_ANTENNAS), self.feature_length))
         new_module.append(nn.ReLU())
         return new_module
     
     def _construct_localization_optimizer_module(self):
         new_module = nn.ModuleList()
-        new_module.append(nn.Linear(self.feature_length, 30))
+        new_module.append(nn.Linear(self.feature_length, 50))
         new_module.append(nn.ReLU())
-        new_module.append(nn.Linear(30, 15))
+        new_module.append(nn.Linear(50, 20))
         new_module.append(nn.ReLU())
-        new_module.append(nn.Linear(15, 3))
+        new_module.append(nn.Linear(20, 3))
         # regard each coordinate predicted as normalized by the side-length of the region
         new_module.append(nn.Sigmoid())
         return new_module
     
     def _construct_beamforming_optimizer_module(self):
         new_module = nn.ModuleList()
-        new_module.append(nn.Linear(self.feature_length, 150))
-        new_module.append(nn.ReLU())
-        new_module.append(nn.Linear(150, 100))
+        new_module.append(nn.Linear(self.feature_length, 100))
         new_module.append(nn.ReLU())
         new_module.append(nn.Linear(100, 2*N_BS*N_BS_ANTENNAS))
         return new_module
@@ -202,10 +200,10 @@ class Autoencoder_Transfer_Net(Neural_Net):
         decoder_module = nn.ModuleList()
         decoder_module.append(nn.Linear(self.feature_length, 30))
         decoder_module.append(nn.ReLU())
-        decoder_module.append(nn.Linear(30, 20))
+        decoder_module.append(nn.Linear(30, 30))
         decoder_module.append(nn.ReLU())
         # factors to be reconstructed aggregated over all BSs
-        decoder_module.append(nn.Linear(20, N_BS*N_FACTORS))
+        decoder_module.append(nn.Linear(30, N_BS*N_FACTORS))
         return decoder_module
 
     def sourcetask(self, x):
@@ -227,7 +225,7 @@ class Autoencoder_Transfer_Net(Neural_Net):
     
     # freeze parameters for transfer learning
     def freeze_parameters(self):
-        for lyr in self.new_module:
+        for lyr in self.feature_module:
             for para in lyr.parameters():
                 para.requires_grad = False
         return

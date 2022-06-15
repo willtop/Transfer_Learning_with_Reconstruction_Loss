@@ -15,9 +15,9 @@ N_BS = 3
 N_BS_ANTENNAS = 16
 ANTENNA_SPACING_PHASE_SHIFT = 1
 N_PILOTS = 4
-FIELD_LENGTH = 40
+FIELD_LENGTH = 30
 FIELD_HEIGHT = 20
-BS_LOCATIONS = np.array([[0,0,20], [0,40,20], [40,0,20]])
+BS_LOCATIONS = np.array([[0,0,20], [0,30,20], [30,0,20]])
 assert np.shape(BS_LOCATIONS) == (N_BS, 3)
 BANDWIDTH = 5e6
 CARRIER_FREQUENCY = 50e9 
@@ -36,10 +36,10 @@ Training Setting
 """
 SOURCETASK = {'Type': 'Source-Task',
         'Task': 'Beamforming',
-        'Train': int(5e5),
+        'Train': int(1e5),
         'Valid': 5000,
         'Minibatch_Size': 2000,
-        'Learning_Rate': 1e-3,
+        'Learning_Rate': 1e-4,
         'Epochs': 200,
         'Loss_Combine_Weight': 3}
 TARGETTASK = {'Type': 'Target-Task',
@@ -48,7 +48,7 @@ TARGETTASK = {'Type': 'Target-Task',
         'Valid': 5000,
         'Minibatch_Size': 100,
         'Learning_Rate': 2e-5,
-        'Epochs': 25000}
+        'Epochs': 5000}
 N_TEST_SAMPLES = 2000
 assert SOURCETASK['Task'] in ['Localization', 'Beamforming'] and \
        TARGETTASK['Task'] in ['Localization', 'Beamforming']

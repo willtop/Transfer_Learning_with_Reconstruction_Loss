@@ -5,7 +5,7 @@ import itertools
 import utils
 from setup import *
 
-CHECK_SETTING = True
+CHECK_SETTING = False
 GENERATE_DATA_SOURCETASK = True
 GENERATE_DATA_TARGETTASK = True
 GENERATE_DATA_TEST = True
@@ -110,14 +110,14 @@ if __name__=="__main__":
 
     if GENERATE_DATA_TARGETTASK:
         print(f"Generate data for {TARGETTASK['Type']} {TARGETTASK['Task']} training......")
-        ue_locs, channels, factos = generate_MIMO_networks(TARGETTASK['Train']+TARGETTASK['Valid'])
+        ue_locs, channels, factors = generate_MIMO_networks(TARGETTASK['Train']+TARGETTASK['Valid'])
         np.save("Data/uelocs_targettask.npy", ue_locs)
         np.save("Data/channels_targettask.npy", channels)
         np.save("Data/factors_targettask.npy", factors)
 
     if GENERATE_DATA_TEST:
         print(f"Generate data for testing......")
-        # Don't worry about factors during testing
+        # No need to keep track of factors during testing
         ue_locs, channels, _ = generate_MIMO_networks(N_TEST_SAMPLES)
         np.save("Data/uelocs_test.npy", ue_locs)
         np.save("Data/channels_test.npy", channels)
