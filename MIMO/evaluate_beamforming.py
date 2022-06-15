@@ -1,4 +1,4 @@
-# Script for evaluating MIMO network objectives: beamforming and localization
+# Script for evaluating MIMO network objective: beamforming
 
 import numpy as np
 import torch
@@ -14,7 +14,6 @@ PLOT_STYLES = {
     "Regular Learning": "m--",
     "Conventional Transfer": "g-.",
     "Transfer with Reconstruct": "r-",
-    "Random Localization": "k:",
     "Random Beamformers": "k:",
     "Perfect Beamformers": "y:"
 }
@@ -94,7 +93,7 @@ if(__name__ =='__main__'):
         upperbound_plot = max(upperbound_plot, np.percentile(val,q=90, interpolation="lower"))
 
     fig = plt.figure()
-    plt.xlabel(f"Beamforming Gains ({task_type})", fontsize=20)
+    plt.xlabel(f"[{task_type}] Beamforming Gains", fontsize=20)
     plt.ylabel("Cumulative Distribution of Beamforming Gains Values", fontsize=20)
     plt.xticks(fontsize=21)
     plt.yticks(np.linspace(start=0, stop=1, num=5), ["{}%".format(int(i*100)) for i in np.linspace(start=0, stop=1, num=5)], fontsize=21)
@@ -107,41 +106,4 @@ if(__name__ =='__main__'):
     plt.subplots_adjust(left=0.1, right=0.95, bottom=0.1, top=0.95)
     plt.show()   
 
-    # [TODO] Visualize beamformer directions
-    rand_idxes = np.random.randint(N_TEST_SAMPLES, size=3)    
-    for id in rand_idxes:
-        fig, axs = plt.subplots(5,4)
-        fig.suptitle(f"{SOURCETASK['Task']}-{TARGETTASK['Task']} Test Layout #{id}")
-        # plot channels
-        axs[0][0].set_title("Channels")
-        axs[0][0].plot(g[id].flatten())
-        plot_label_direct_channels(axs[0][0])
-        # plot for source task
-        if SOURCETASK['Task'] == "Sum-Rate":
-            optimal_benchmark = "FP" 
-        elif SOURCETASK['Task'] == "Min-Rate" and GP_INCLUDED:
-            optimal_benchmark = "GP"
-        else:
-            optimal_benchmark = "Regular Learning"
-        methods_plotted = set([optimal_benchmark, "Regular Learning", "Conventional Transfer Learning", "Autoencoder Transfer Learning"])
-        for i, method_key in enumerate(methods_plotted):
-            axs[1][i].plot(np.arange(1, N_LINKS+1), power_controls[SOURCETASK['Type']][method_key][id], label="{}_pc".format(method_key))
-            axs[1][i].legend()
-            axs[2][i].plot(np.arange(1, N_LINKS+1), rates_all[SOURCETASK['Type']][method_key][id], label="{}_rates".format(method_key))
-            axs[2][i].legend()
-        # plot for target task
-        if TARGETTASK['Task'] == "Sum-Rate":
-            optimal_benchmark = "FP" 
-        elif TARGETTASK['Task'] == "Min-Rate" and GP_INCLUDED:
-            optimal_benchmark = "GP"
-        else:
-            optimal_benchmark = "Regular Learning"
-        methods_plotted = set([optimal_benchmark, "Regular Learning", "Conventional Transfer Learning", "Autoencoder Transfer Learning"])
-        for i, method_key in enumerate(methods_plotted):
-            axs[3][i].plot(np.arange(1, N_LINKS+1), power_controls[TARGETTASK['Type']][method_key][id], label="{}_pc".format(method_key))
-            axs[3][i].legend()
-            axs[4][i].plot(np.arange(1, N_LINKS+1), rates_all[TARGETTASK['Type']][method_key][id], label="{}_rates".format(method_key))
-            axs[4][i].legend()
-        plt.show()
-        
-    print("Evaluation Finished Successfully!")
+    print("Beamforming Evaluation Finished Successfully!")

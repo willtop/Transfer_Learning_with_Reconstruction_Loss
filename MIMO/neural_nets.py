@@ -32,6 +32,12 @@ class Neural_Net(nn.Module):
         beamformers_raw = torch.view_as_complex(beamformers_raw).view(n_networks, N_BS, N_BS_ANTENNAS)
         return beamformers_raw / beamformers_raw.norm(dim=-1, keepdim=True)
 
+    # raw localization outputs 0~1
+    def _postprocess_locations(self, locations_raw):
+        n_networks = locations_raw.size(0)
+        assert locations_raw.size() == (n_networks, 3)
+        return locations_raw * (torch.tensor([[FIELD_LENGTH, FIELD_LENGTH, FIELD_HEIGHT]], dtype=torch.float32).to(DEVICE))
+
     def sourcetask(self):
         raise NotImplementedError
 
@@ -121,6 +127,8 @@ class Regular_Net(Neural_Net):
             x = lyr(x)
         if SOURCETASK['Task'] == "Beamforming":
             x = self._postprocess_beamformers(x)
+        else:
+            x = self._postprocess_locations(x)
         return x 
 
     def targettask(self, x):
@@ -131,6 +139,8 @@ class Regular_Net(Neural_Net):
             x = lyr(x)
         if TARGETTASK['Task'] == "Beamforming":
             x = self._postprocess_beamformers(x)
+        else:
+            x = self._postprocess_locations(x)
         return x
 
 
@@ -153,6 +163,8 @@ class Transfer_Net(Neural_Net):
             x = lyr(x)
         if SOURCETASK['Task'] == "Beamforming":
             x = self._postprocess_beamformers(x)
+        else:
+            x = self._postprocess_locations(x)
         return x
 
     # freeze parameters for transfer learning
@@ -162,7 +174,7 @@ class Transfer_Net(Neural_Net):
                 para.requires_grad = False
         return
 
-    def targettask(self, x, channels):
+    def targettask(self, x):
         x = self._preprocess_inputs(x)
         for lyr in self.feature_module:
             x = lyr(x)
@@ -170,6 +182,8 @@ class Transfer_Net(Neural_Net):
             x = lyr(x)
         if TARGETTASK['Task'] == "Beamforming":
             x = self._postprocess_beamformers(x)
+        else:
+            x = self._postprocess_locations(x)
         return x
 
 class Autoencoder_Transfer_Net(Neural_Net):
@@ -207,6 +221,8 @@ class Autoencoder_Transfer_Net(Neural_Net):
             x = lyr(x)
         if SOURCETASK['Task'] == "Beamforming":
             x = self._postprocess_beamformers(x)
+        else:
+            x = self._postprocess_locations(x)
         return x, factors_reconstructed
     
     # freeze parameters for transfer learning
@@ -216,14 +232,16 @@ class Autoencoder_Transfer_Net(Neural_Net):
                 para.requires_grad = False
         return
 
-    def targettask(self, x, channels):
-        x = self._preprocess_inputssss(x)
+    def targettask(self, x):
+        x = self._preprocess_inputs(x)
         for lyr in self.feature_module:
             x = lyr(x)
         for lyr in self.targettask_optimizer_module:
             x = lyr(x)
         if TARGETTASK['Task'] == "Beamforming":
             x = self._postprocess_beamformers(x)
+        else:
+            x = self._postprocess_locations(x)
         return x
 
 if __name__ == "__main__":
