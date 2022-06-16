@@ -16,11 +16,14 @@ class Neural_Net(nn.Module):
         self.model_path_noEarlyStop = None
         # general attributes
         self.base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Trained_Models")
-        self.channels_mean = torch.tensor(np.load(os.path.join(self.base_dir, "Channels_Stats", "channels_train_mean.npy")),dtype=torch.cfloat).to(DEVICE)
-        self.channels_std = torch.tensor(np.load(os.path.join(self.base_dir, "Channels_Stats", "channels_train_std.npy")),dtype=torch.cfloat).to(DEVICE)
+        self.inputs_train_mean = torch.tensor(np.load(os.path.join(self.base_dir, "Inputs_Stats", "inputs_train_mean.npy")),dtype=torch.cfloat).to(DEVICE)
+        self.inputs_train_std = torch.tensor(np.load(os.path.join(self.base_dir, "Inputs_Stats", "inputs_train_std.npy")),dtype=torch.cfloat).to(DEVICE)
 
     def _preprocess_inputs(self, inputs):
         assert inputs.ndim == 3
+        # input normalization for received uplink pilots
+        inputs = (inputs - self.inputs_train_mean)/self.inputs_train_std
+        # convert to real vectors
         inputs = inputs.view(-1, N_BS*N_PILOTS)
         inputs = torch.view_as_real(inputs)
         inputs = inputs.view(-1, N_BS*N_PILOTS*2)

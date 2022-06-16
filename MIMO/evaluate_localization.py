@@ -15,7 +15,8 @@ PLOT_STYLES = {
     "Regular Learning": "m--",
     "Conventional Transfer": "g-.",
     "Transfer with Reconstruct": "r-",
-    "Random Localization": "k:"
+    "Random Localization": "k:",
+    "Center Localization": "y:"
 }
 
 def postprocess_location_predictions(locs):
@@ -40,11 +41,11 @@ def compute_localization_errors(uelocs_predicted, uelocs):
 if(__name__ =='__main__'):
     uelocs = np.load("Data/uelocs_test.npy")
     channels = np.load("Data/channels_test.npy")
+    measures = np.load("Data/measures_test.npy")
     assert np.shape(uelocs) == (N_TEST_SAMPLES, 3) and \
-           np.shape(channels) == (N_TEST_SAMPLES, N_BS, N_BS_ANTENNAS)
+           np.shape(channels) == (N_TEST_SAMPLES, N_BS, N_BS_ANTENNAS) and \
+           np.shape(measures) == (N_TEST_SAMPLES, N_BS, N_PILOTS)
     print(f"[MIMO] Evaluate {SOURCETASK['Task']}->{TARGETTASK['Task']} over {N_TEST_SAMPLES} layouts.")
-    # Take uplink pilots measurements
-    measures = obtain_measured_uplink_signals(channels)
 
     regular_net, transfer_net, ae_transfer_net = \
          Regular_Net(EVALUATE_EARLY_STOP).to(DEVICE), \
@@ -67,7 +68,11 @@ if(__name__ =='__main__'):
     uelocs_predicted_all['Random Localization'] = np.concatenate([np.random.uniform(low=UE_LOCATION_XMIN, high=UE_LOCATION_XMAX, size=(N_TEST_SAMPLES, 1)), \
                                                                   np.random.uniform(low=UE_LOCATION_YMIN, high=UE_LOCATION_YMAX, size=(N_TEST_SAMPLES, 1)), \
                                                                   np.zeros(shape=(N_TEST_SAMPLES,1),dtype=float)], axis=1)
-        
+    # For center localization, just guess the center of the possible UE distribution region
+    uelocs_predicted_all['Center Localization'] = np.concatenate([np.ones(shape=(N_TEST_SAMPLES, 1),dtype=float)*(UE_LOCATION_XMIN+UE_LOCATION_XMAX)/2, \
+                                                                  np.ones(shape=(N_TEST_SAMPLES, 1),dtype=float)*(UE_LOCATION_YMIN+UE_LOCATION_YMAX)/2, \
+                                                                  np.zeros(shape=(N_TEST_SAMPLES,1),dtype=float)], axis=1)
+         
     print("Evaluating localization performances...")
     errors_all = {}
     for method_key, uelocs_predicted in uelocs_predicted_all.items():

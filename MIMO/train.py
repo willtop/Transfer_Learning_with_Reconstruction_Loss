@@ -102,7 +102,7 @@ if(__name__=="__main__"):
     uelocs = np.load("Data/uelocs_sourcetask.npy")
     channels = np.load("Data/channels_sourcetask.npy")
     factors = np.load("Data/factors_sourcetask.npy")
-    measures = utils.obtain_measured_uplink_signals(channels)
+    measures = np.load("Data/measures_sourcetask.npy")
     assert np.shape(uelocs)[0] == np.shape(channels)[0] == np.shape(factors)[0] == np.shape(measures)[0] == \
                 SOURCETASK['Train'] + SOURCETASK['Valid']
     uelocs_train, uelocs_valid = uelocs[:SOURCETASK['Train']], uelocs[-SOURCETASK['Valid']:]
@@ -187,7 +187,7 @@ if(__name__=="__main__"):
     uelocs = np.load("Data/uelocs_targettask.npy")
     channels = np.load("Data/channels_targettask.npy")
     factors = np.load("Data/factors_targettask.npy")
-    measures = utils.obtain_measured_uplink_signals(channels)
+    measures = np.load("Data/measures_targettask.npy")
     assert np.shape(uelocs)[0] == np.shape(channels)[0] == np.shape(factors)[0] == np.shape(measures)[0] == \
                 TARGETTASK['Train'] + TARGETTASK['Valid']
     uelocs_train, uelocs_valid = uelocs[:TARGETTASK['Train']], uelocs[-TARGETTASK['Valid']:]

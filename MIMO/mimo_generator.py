@@ -10,6 +10,48 @@ GENERATE_DATA_SOURCETASK = True
 GENERATE_DATA_TARGETTASK = True
 GENERATE_DATA_TEST = True
 
+# To be called after pilots and sensing vectors are saved
+def compute_measured_uplink_signals(channels):
+    # the pilots and sensing vectors are the same throughout
+    pilots = np.load("Trained_Models/pilots.npy")
+    sensing_vectors = np.load("Trained_Models/sensing_vectors.npy")
+    n_networks = np.shape(channels)[0]
+    assert np.shape(pilots)==(N_PILOTS,)
+    assert np.shape(channels)==(n_networks, N_BS, N_BS_ANTENNAS)
+    assert np.shape(sensing_vectors)==(N_BS, N_PILOTS, N_BS_ANTENNAS)
+    # compute received uplink signals one BS at a time
+    signals = []
+    for i in range(N_BS):
+        channels_oneBS = np.expand_dims(channels[:,i,:],axis=-1)
+        sensing_vectors_oneBS = np.expand_dims(np.conjugate(sensing_vectors[i]),axis=0)
+        signals_tmp = np.matmul(sensing_vectors_oneBS, channels_oneBS)
+        assert np.shape(signals_tmp)==(n_networks, N_PILOTS, 1)
+        signals_oneBS = np.squeeze(signals_tmp) * pilots
+        signals.append(np.expand_dims(signals_oneBS,axis=1))
+    signals = np.concatenate(signals, axis=1)
+    assert np.shape(signals)==(n_networks, N_BS, N_PILOTS)
+    # add in noise
+    # assume uplink and downlink with same noise level
+    noises = utils.generate_circular_gaussians(size_to_generate=(n_networks, N_BS, N_PILOTS))
+    noises = noises / np.abs(noises) * np.sqrt(NOISE_POWER)
+    measures = signals + noises
+    assert np.shape(measures)==(n_networks, N_BS, N_PILOTS)
+    return measures
+
+def establish_uplinks():
+    print("Establish Uplinks: Generate and store uplink pilots and sensing vectors....")
+    # Randomly generate uplink pilots used by the user-equipment (same across all networks)
+    pilots = utils.generate_circular_gaussians(size_to_generate=(N_PILOTS,))
+    # normalize each uplink pilot to max transmission power of each UE
+    pilots = pilots / np.abs(pilots) * np.sqrt(TX_POWER_UE)
+    np.save("Trained_Models/pilots.npy", pilots)
+    # Randomly generate uplink pilots sensing vectors for all base-stations
+    sensing_vectors = utils.generate_circular_gaussians(size_to_generate=(N_BS, N_PILOTS, N_BS_ANTENNAS))
+    # normalize the sensing vectors to be uniform power within each base-station
+    sensing_vectors = sensing_vectors / np.linalg.norm(sensing_vectors, axis=-1, keepdims=True)
+    np.save("Trained_Models/sensing_vectors.npy", sensing_vectors)
+    return
+
 def compute_pathloss(dists):
     pathlosses_tmp = 32.6+36.7*np.log(dists)
     pathlosses = np.power(10, -pathlosses_tmp/10)
@@ -96,37 +138,34 @@ if __name__=="__main__":
         exit(0)
 
     if GENERATE_DATA_SOURCETASK:
+        establish_uplinks()
         print(f"Generate data for {SOURCETASK['Type']} {SOURCETASK['Task']} training, including statistics for input normalization......")
         ue_locs, channels, factors = generate_MIMO_networks(SOURCETASK['Train']+SOURCETASK['Valid'])
+        measures = compute_measured_uplink_signals(channels)
         np.save("Data/uelocs_sourcetask.npy", ue_locs)
         np.save("Data/channels_sourcetask.npy", channels)
         np.save("Data/factors_sourcetask.npy", factors)
-        # Use the source-task train data for input normalization stats
-        np.save("Trained_Models/Channels_Stats/channels_train_mean.npy", np.mean(channels[:SOURCETASK['Train']], axis=0))
-        np.save("Trained_Models/Channels_Stats/channels_train_std.npy", np.std(channels[:SOURCETASK['Train']], axis=0))
-        # Randomly generate uplink pilots used by the user-equipment (same across all networks)
-        pilots = utils.generate_circular_gaussians(size_to_generate=(N_PILOTS,))
-        # normalize each uplink pilot to max transmission power of each UE
-        pilots = pilots / np.abs(pilots) * np.sqrt(TX_POWER_UE)
-        np.save("Trained_Models/pilots.npy", pilots)
-        # Randomly generate uplink pilots sensing vectors for all base-stations
-        sensing_vectors = utils.generate_circular_gaussians(size_to_generate=(N_BS, N_PILOTS, N_BS_ANTENNAS))
-        # normalize the sensing vectors to be uniform power within each base-station
-        sensing_vectors = sensing_vectors / np.linalg.norm(sensing_vectors, axis=-1, keepdims=True)
-        np.save("Trained_Models/sensing_vectors.npy", sensing_vectors)
+        np.save("Data/measures_sourcetask.npy", measures)
+        # obtain uplink measurements and save for input normalization states
+        np.save("Trained_Models/Inputs_Stats/inputs_train_mean.npy", np.mean(measures[:SOURCETASK['Train']], axis=0))
+        np.save("Trained_Models/Inputs_Stats/inputs_train_std.npy", np.std(measures[:SOURCETASK['Train']], axis=0))
 
     if GENERATE_DATA_TARGETTASK:
         print(f"Generate data for {TARGETTASK['Type']} {TARGETTASK['Task']} training......")
         ue_locs, channels, factors = generate_MIMO_networks(TARGETTASK['Train']+TARGETTASK['Valid'])
+        measures = compute_measured_uplink_signals(channels)
         np.save("Data/uelocs_targettask.npy", ue_locs)
         np.save("Data/channels_targettask.npy", channels)
         np.save("Data/factors_targettask.npy", factors)
+        np.save("Data/measures_targettask.npy", measures)
 
     if GENERATE_DATA_TEST:
         print(f"Generate data for testing......")
         # No need to keep track of factors during testing
         ue_locs, channels, _ = generate_MIMO_networks(N_TEST_SAMPLES)
+        measures = compute_measured_uplink_signals(channels)
         np.save("Data/uelocs_test.npy", ue_locs)
         np.save("Data/channels_test.npy", channels)
+        np.save("Data/measures_test.npy", measures)
 
     print("Script Completed!")

@@ -40,11 +40,11 @@ def compute_snrs(gains):
 if(__name__ =='__main__'):
     uelocs = np.load("Data/uelocs_test.npy")
     channels = np.load("Data/channels_test.npy")
+    measures = np.load("Data/measures_test.npy")
     assert np.shape(uelocs) == (N_TEST_SAMPLES, 3) and \
-           np.shape(channels) == (N_TEST_SAMPLES, N_BS, N_BS_ANTENNAS)
+           np.shape(channels) == (N_TEST_SAMPLES, N_BS, N_BS_ANTENNAS) and \
+           np.shape(measures) == (N_TEST_SAMPLES, N_BS, N_PILOTS)
     print(f"[MIMO] Evaluate {SOURCETASK['Task']}->{TARGETTASK['Task']} over {N_TEST_SAMPLES} layouts.")
-    # Take uplink pilots measurements
-    measures = obtain_measured_uplink_signals(channels)
 
     regular_net, transfer_net, ae_transfer_net = \
          Regular_Net(EVALUATE_EARLY_STOP).to(DEVICE), \
