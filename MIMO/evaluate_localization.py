@@ -18,14 +18,20 @@ PLOT_STYLES = {
     "Random Localization": "k:"
 }
 
+def postprocess_location_predictions(locs):
+    n_networks = np.shape(locs)[0]
+    assert np.shape(locs)==(n_networks, 2)
+    locs_postprocessed = np.concatenate([locs, np.zeros(shape=(n_networks, 1), dtype=float)], axis=1)
+    return locs_postprocessed
+
 # Numpy computation
 def compute_localization_errors(uelocs_predicted, uelocs):
     n_networks = np.shape(uelocs_predicted)[0]
     assert np.shape(uelocs_predicted) == np.shape(uelocs) == (n_networks, 3)
     # ensure localization predictions are within the bounds
-    assert np.min(uelocs_predicted[:,0])>=0 and np.max(uelocs_predicted[:,0])<=FIELD_LENGTH and \
-           np.min(uelocs_predicted[:,1])>=0 and np.max(uelocs_predicted[:,1])<=FIELD_LENGTH and \
-           np.min(uelocs_predicted[:,2])>=0 and np.max(uelocs_predicted[:,2])<=FIELD_HEIGHT
+    assert np.min(uelocs_predicted[:,0])>=UE_LOCATION_XMIN and np.max(uelocs_predicted[:,0])<=UE_LOCATION_XMAX and \
+           np.min(uelocs_predicted[:,1])>=UE_LOCATION_YMIN and np.max(uelocs_predicted[:,1])<=UE_LOCATION_YMAX and \
+           np.all(uelocs_predicted[:,2]==0)
     # compute the localization error in terms of the euclidean distance to the true locations
     localization_errors = np.linalg.norm(uelocs-uelocs_predicted, axis=1)
     return localization_errors
@@ -50,16 +56,17 @@ if(__name__ =='__main__'):
     print("Collecting localization solutions...")
     uelocs_predicted_all = {}
     if SOURCETASK['Task'] == "Localization":
-        uelocs_predicted_all['Regular Learning'] = regular_net.sourcetask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE)).detach().cpu().numpy()
-        uelocs_predicted_all['Conventional Transfer'] = transfer_net.sourcetask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE)).detach().cpu().numpy()
+        uelocs_predicted_all['Regular Learning'] = postprocess_location_predictions(regular_net.sourcetask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE)).detach().cpu().numpy())
+        uelocs_predicted_all['Conventional Transfer'] = postprocess_location_predictions(transfer_net.sourcetask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE)).detach().cpu().numpy())
         tmp, _ = ae_transfer_net.sourcetask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE))
-        uelocs_predicted_all['Transfer with Reconstruct'] = tmp.detach().cpu().numpy()
+        uelocs_predicted_all['Transfer with Reconstruct'] = postprocess_location_predictions(tmp.detach().cpu().numpy())
     else:
-        uelocs_predicted_all['Regular Learning'] = regular_net.targettask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE)).detach().cpu().numpy()
-        uelocs_predicted_all['Conventional Transfer'] = transfer_net.targettask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE)).detach().cpu().numpy()
-        uelocs_predicted_all['Transfer with Reconstruct'] = ae_transfer_net.targettask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE)).detach().cpu().numpy()
-    uelocs_predicted_all['Random Localization'] = np.concatenate([np.random.uniform(low=0, high=FIELD_LENGTH, size=(N_TEST_SAMPLES, 2)), \
-                                                                  np.random.uniform(low=0, high=FIELD_HEIGHT, size=(N_TEST_SAMPLES, 1))], axis=1)
+        uelocs_predicted_all['Regular Learning'] = postprocess_location_predictions(regular_net.targettask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE)).detach().cpu().numpy())
+        uelocs_predicted_all['Conventional Transfer'] = postprocess_location_predictions(transfer_net.targettask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE)).detach().cpu().numpy())
+        uelocs_predicted_all['Transfer with Reconstruct'] = postprocess_location_predictions(ae_transfer_net.targettask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE)).detach().cpu().numpy())
+    uelocs_predicted_all['Random Localization'] = np.concatenate([np.random.uniform(low=UE_LOCATION_XMIN, high=UE_LOCATION_XMAX, size=(N_TEST_SAMPLES, 1)), \
+                                                                  np.random.uniform(low=UE_LOCATION_YMIN, high=UE_LOCATION_YMAX, size=(N_TEST_SAMPLES, 1)), \
+                                                                  np.zeros(shape=(N_TEST_SAMPLES,1),dtype=float)], axis=1)
         
     print("Evaluating localization performances...")
     errors_all = {}

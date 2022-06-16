@@ -45,7 +45,8 @@ def get_channels_to_BS(ue_locs, BS_ID):
     # compute path losses
     pathlosses = compute_pathloss(np.tile(np.expand_dims(ue_bs_dists, axis=1), (1, N_BS_ANTENNAS)))
     assert np.shape(pathlosses)==np.shape(channels_fading)==(n_networks, N_BS_ANTENNAS)
-    channels_one_BS = pathlosses*channels_fading
+    # take the square root of path-loss for channel coefficients
+    channels_one_BS = np.sqrt(pathlosses)*channels_fading
     # collect factors: one tuple from each BS (distance, sin_theta_cos_phi, cos_theta_cos_phi)
     factors_one_BS = np.concatenate([np.expand_dims(ue_bs_dists, axis=1), \
                                      np.expand_dims(sin_theta_cos_phi, axis=1), \
@@ -54,12 +55,18 @@ def get_channels_to_BS(ue_locs, BS_ID):
             np.shape(factors_one_BS) == (n_networks, N_FACTORS)
     return channels_one_BS, factors_one_BS
 
-def generate_MIMO_networks(n_networks):
+def generate_UE_locations(n_networks):
     # generate user location in 3D space
     # one UE in each network
-    ue_locs = np.concatenate([np.random.uniform(low=0, high=FIELD_LENGTH, size=(n_networks, 2)), \
-                             np.random.uniform(low=0, high=FIELD_HEIGHT, size=(n_networks, 1))], axis=1) 
+    ue_locs_x = np.random.uniform(low=UE_LOCATION_XMIN, high=UE_LOCATION_XMAX, size=(n_networks, 1))
+    ue_locs_y = np.random.uniform(low=UE_LOCATION_YMIN, high=UE_LOCATION_YMAX, size=(n_networks, 1))
+    ue_locs_z = np.zeros(shape=(n_networks, 1))
+    ue_locs = np.concatenate([ue_locs_x, ue_locs_y, ue_locs_z], axis=1) 
     assert np.shape(ue_locs) == (n_networks, 3)
+    return ue_locs
+
+def generate_MIMO_networks(n_networks):
+    ue_locs = generate_UE_locations(n_networks)
     # compute channels from the UEs to each of the BSs
     channels, factors = [], []
     for i in range(N_BS):
@@ -99,8 +106,8 @@ if __name__=="__main__":
         np.save("Trained_Models/Channels_Stats/channels_train_std.npy", np.std(channels[:SOURCETASK['Train']], axis=0))
         # Randomly generate uplink pilots used by the user-equipment (same across all networks)
         pilots = utils.generate_circular_gaussians(size_to_generate=(N_PILOTS,))
-        # normalize each pilot to unit power
-        pilots = pilots / np.abs(pilots)
+        # normalize each uplink pilot to max transmission power of each UE
+        pilots = pilots / np.abs(pilots) * np.sqrt(TX_POWER_UE)
         np.save("Trained_Models/pilots.npy", pilots)
         # Randomly generate uplink pilots sensing vectors for all base-stations
         sensing_vectors = utils.generate_circular_gaussians(size_to_generate=(N_BS, N_PILOTS, N_BS_ANTENNAS))

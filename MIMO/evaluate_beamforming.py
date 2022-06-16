@@ -7,9 +7,7 @@ from neural_nets import Regular_Net, Transfer_Net, Autoencoder_Transfer_Net
 from utils import *
 from setup import *
 
-VISUALIZE_ALLOCATIONS = False
-GP_INCLUDED = True
-EVALUATE_EARLY_STOP = False
+EVALUATE_EARLY_STOP = True
 PLOT_STYLES = {
     "Regular Learning": "m--",
     "Conventional Transfer": "g-.",
@@ -37,7 +35,7 @@ def compute_beamformer_gains(beamformers, channels):
 def compute_snrs(gains):
     n_networks = np.shape(gains)[0]
     assert np.shape(gains) == (n_networks, N_BS)
-    return np.sum(gains,axis=1)/NOISE_POWER
+    return np.sum(gains,axis=1)*TX_POWER_BS/NOISE_POWER
 
 if(__name__ =='__main__'):
     uelocs = np.load("Data/uelocs_test.npy")
@@ -83,7 +81,7 @@ if(__name__ =='__main__'):
         
     # reiterate to get the percentage w.r.t. perfect beamformers
     for method_key in beamformers_all.keys():
-        print("[{}]: avg gain per BS: {:.3f} ({:.2f}% of perfect beamformers); avg SNR level per network: {:.3f}dB ({:.2f}% of perfect beamformers in absolute scale)".format(
+        print("[{}]: avg gain per BS: {:.2e} ({:.1f}% of perfect beamformers); avg SNR per network: {:.3f}dB ({:.2f}% of perfect beamformers in absolute scale)".format(
                 method_key, np.mean(gains_all[method_key]), np.mean(gains_all[method_key]/gains_all["Perfect Beamformers"])*100,
                 np.mean(10*np.log10(snrs_all[method_key])), np.mean(snrs_all[method_key]/snrs_all["Perfect Beamformers"])*100))
 
@@ -93,7 +91,6 @@ if(__name__ =='__main__'):
     for val in gains_all.values():
         lowerbound_plot = min(lowerbound_plot, np.percentile(val,q=10, interpolation="lower"))
         upperbound_plot = max(upperbound_plot, np.percentile(val,q=90, interpolation="lower"))
-
     fig = plt.figure()
     plt.xlabel(f"[{task_type}] Beamforming Gains", fontsize=20)
     plt.ylabel("Cumulative Distribution of Beamforming Gains Values", fontsize=20)
@@ -103,7 +100,7 @@ if(__name__ =='__main__'):
     plt.ylim(bottom=0)
     for method_key, gains in gains_all.items():
         plt.plot(np.sort(gains), np.arange(1,N_TEST_SAMPLES*N_BS+1)/N_TEST_SAMPLES*N_BS, PLOT_STYLES[method_key], linewidth=2.0, label=method_key)
-    plt.xlim(left=lowerbound_plot/1e6, right=upperbound_plot/1e6)
+    plt.xlim(left=lowerbound_plot, right=upperbound_plot)
     plt.legend(prop={'size':20}, loc='lower right')
     plt.subplots_adjust(left=0.1, right=0.95, bottom=0.1, top=0.95)
     plt.show()   

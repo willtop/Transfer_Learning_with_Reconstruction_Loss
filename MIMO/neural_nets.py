@@ -35,8 +35,10 @@ class Neural_Net(nn.Module):
     # raw localization outputs 0~1
     def _postprocess_locations(self, locations_raw):
         n_networks = locations_raw.size(0)
-        assert locations_raw.size() == (n_networks, 3)
-        return locations_raw * (torch.tensor([[FIELD_LENGTH, FIELD_LENGTH, FIELD_HEIGHT]], dtype=torch.float32).to(DEVICE))
+        assert locations_raw.size() == (n_networks, 2)
+        locations = locations_raw * (torch.tensor([[UE_LOCATION_XMAX-UE_LOCATION_XMIN, UE_LOCATION_YMAX-UE_LOCATION_YMIN]], dtype=torch.float32).to(DEVICE)) \
+                    + (torch.tensor([[UE_LOCATION_XMIN, UE_LOCATION_YMIN]], dtype=torch.float32).to(DEVICE))
+        return locations
 
     def sourcetask(self):
         raise NotImplementedError
@@ -66,11 +68,13 @@ class Neural_Net(nn.Module):
     # Modules to compose different types of neural net
     def _construct_feature_module(self):
         new_module = nn.ModuleList()
-        new_module.append(nn.Linear(N_BS*N_PILOTS*2, int(2*N_BS*N_BS_ANTENNAS)))
+        new_module.append(nn.Linear(N_BS*N_PILOTS*2, 200))
         new_module.append(nn.ReLU())
-        new_module.append(nn.Linear(int(2*N_BS*N_BS_ANTENNAS), int(2*N_BS*N_BS_ANTENNAS)))
+        new_module.append(nn.Linear(200, 200))
         new_module.append(nn.ReLU())
-        new_module.append(nn.Linear(int(2*N_BS*N_BS_ANTENNAS), self.feature_length))
+        new_module.append(nn.Linear(200, 200))
+        new_module.append(nn.ReLU())
+        new_module.append(nn.Linear(200, self.feature_length))
         new_module.append(nn.ReLU())
         return new_module
     
@@ -80,7 +84,7 @@ class Neural_Net(nn.Module):
         new_module.append(nn.ReLU())
         new_module.append(nn.Linear(50, 20))
         new_module.append(nn.ReLU())
-        new_module.append(nn.Linear(20, 3))
+        new_module.append(nn.Linear(20, 2))
         # regard each coordinate predicted as normalized by the side-length of the region
         new_module.append(nn.Sigmoid())
         return new_module
