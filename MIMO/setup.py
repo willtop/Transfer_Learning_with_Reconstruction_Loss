@@ -49,15 +49,15 @@ SOURCETASK = {'Type': 'Source-Task',
         'Train': int(1e6),
         'Valid': 5000,
         'Minibatch_Size': 5000,
-        'Learning_Rate': 1e-4,
-        'Epochs': 50,
+        'Learning_Rate': 5e-5,
+        'Epochs': 25,
         'Loss_Combine_Weight': 3}
 TARGETTASK = {'Type': 'Target-Task',
         'Task': 'Localization',
-        'Train': int(1e4),
+        'Train': int(5e4),
         'Valid': 5000,
         'Minibatch_Size': 100,
-        'Learning_Rate': 2e-5,
+        'Learning_Rate': 5e-5,
         'Epochs': 1000}
 N_TEST_SAMPLES = 2000
 assert SOURCETASK['Task'] in ['Localization', 'Beamforming'] and \

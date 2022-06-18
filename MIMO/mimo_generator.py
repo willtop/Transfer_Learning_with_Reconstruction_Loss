@@ -6,9 +6,9 @@ import utils
 from setup import *
 
 CHECK_SETTING = False
-GENERATE_DATA_SOURCETASK = True
+GENERATE_DATA_SOURCETASK = False
 GENERATE_DATA_TARGETTASK = True
-GENERATE_DATA_TEST = True
+GENERATE_DATA_TEST = False
 
 # To be called after pilots and sensing vectors are saved
 def compute_measured_uplink_signals(channels):

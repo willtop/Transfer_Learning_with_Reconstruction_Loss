@@ -9,7 +9,7 @@ class Neural_Net(nn.Module):
     def __init__(self):
         super().__init__()
         # model architecture attribute
-        self.feature_length = int(N_BS * N_BS_ANTENNAS * 0.5)
+        self.feature_length = 200
         # attributes to be overridden by subclasses
         self.model_type = None
         self.model_path = None
@@ -83,11 +83,11 @@ class Neural_Net(nn.Module):
     
     def _construct_localization_optimizer_module(self):
         new_module = nn.ModuleList()
-        new_module.append(nn.Linear(self.feature_length, 50))
+        new_module.append(nn.Linear(self.feature_length, 100))
         new_module.append(nn.ReLU())
-        new_module.append(nn.Linear(50, 20))
+        new_module.append(nn.Linear(100, 100))
         new_module.append(nn.ReLU())
-        new_module.append(nn.Linear(20, 2))
+        new_module.append(nn.Linear(100, 2))
         # regard each coordinate predicted as normalized by the side-length of the region
         new_module.append(nn.Sigmoid())
         return new_module
@@ -205,12 +205,12 @@ class Autoencoder_Transfer_Net(Neural_Net):
 
     def _construct_decoder_module(self):
         decoder_module = nn.ModuleList()
-        decoder_module.append(nn.Linear(self.feature_length, 30))
+        decoder_module.append(nn.Linear(self.feature_length, 100))
         decoder_module.append(nn.ReLU())
-        decoder_module.append(nn.Linear(30, 30))
+        decoder_module.append(nn.Linear(100, 100))
         decoder_module.append(nn.ReLU())
         # factors to be reconstructed aggregated over all BSs
-        decoder_module.append(nn.Linear(30, N_BS*N_FACTORS))
+        decoder_module.append(nn.Linear(100, N_BS*N_FACTORS))
         return decoder_module
 
     def sourcetask(self, x):
