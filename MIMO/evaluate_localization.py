@@ -85,8 +85,8 @@ if(__name__ =='__main__'):
     # get the lower bound plot
     lowerbound_plot, upperbound_plot = np.inf, -np.inf
     for val in errors_all.values():
-        lowerbound_plot = min(lowerbound_plot, np.percentile(val, q=10, interpolation="lower"))
-        upperbound_plot = max(upperbound_plot, np.percentile(val, q=90, interpolation="lower"))
+        lowerbound_plot = min(lowerbound_plot, np.percentile(val, q=5, interpolation="lower"))
+        upperbound_plot = max(upperbound_plot, np.percentile(val, q=95, interpolation="lower"))
 
     fig = plt.figure()
     plt.xlabel(f"[{task_type}] Localization Errors (m)", fontsize=20)
@@ -97,7 +97,7 @@ if(__name__ =='__main__'):
     plt.ylim(bottom=0)
     for method_key, errors in errors_all.items():
         plt.plot(np.sort(errors), np.arange(1,N_TEST_SAMPLES+1)/N_TEST_SAMPLES, PLOT_STYLES[method_key], linewidth=2.0, label=method_key)
-    plt.xlim(left=lowerbound_plot/1e6, right=upperbound_plot/1e6)
+    plt.xlim(left=lowerbound_plot, right=upperbound_plot)
     plt.legend(prop={'size':20}, loc='lower right')
     plt.subplots_adjust(left=0.1, right=0.95, bottom=0.1, top=0.95)
     plt.show()   

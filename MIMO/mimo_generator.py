@@ -6,9 +6,9 @@ import utils
 from setup import *
 
 CHECK_SETTING = False
-GENERATE_DATA_SOURCETASK = False
+GENERATE_DATA_SOURCETASK = True
 GENERATE_DATA_TARGETTASK = True
-GENERATE_DATA_TEST = False
+GENERATE_DATA_TEST = True
 
 # To be called after pilots and sensing vectors are saved
 def compute_measured_uplink_signals(channels):
@@ -120,6 +120,11 @@ def generate_MIMO_networks(n_networks):
             np.shape(factors) == (n_networks, N_BS, N_FACTORS)
     return ue_locs, channels, factors
 
+# assume the stats from factors in the training set are already computed and stored
+def normalize_factors(factors_orig):
+    factorstats_mean = np.load("Trained_Models/Normalization_Stats/factorstats_train_mean.npy")
+    factorstats_std = np.load("Trained_Models/Normalization_Stats/factorstats_train_std.npy")
+    return (factors_orig-factorstats_mean)/factorstats_std
 
 if __name__=="__main__":
     if CHECK_SETTING:
@@ -142,18 +147,28 @@ if __name__=="__main__":
         print(f"Generate data for {SOURCETASK['Type']} {SOURCETASK['Task']} training, including statistics for input normalization......")
         ue_locs, channels, factors = generate_MIMO_networks(SOURCETASK['Train']+SOURCETASK['Valid'])
         measures = compute_measured_uplink_signals(channels)
+        # save factors normalization stats
+        print("Compute and store normalization statistics from factors in training set...")
+        np.save("Trained_Models/Normalization_Stats/factorstats_train_mean.npy", np.mean(factors[:SOURCETASK['Train']], axis=0))
+        np.save("Trained_Models/Normalization_Stats/factorstats_train_std.npy", np.std(factors[:SOURCETASK['Train']], axis=0))
+        # normalize factors
+        factors = normalize_factors(factors)
+        # save data
         np.save("Data/uelocs_sourcetask.npy", ue_locs)
         np.save("Data/channels_sourcetask.npy", channels)
         np.save("Data/factors_sourcetask.npy", factors)
         np.save("Data/measures_sourcetask.npy", measures)
         # obtain uplink measurements and save for input normalization states
-        np.save("Trained_Models/Inputs_Stats/inputs_train_mean.npy", np.mean(measures[:SOURCETASK['Train']], axis=0))
-        np.save("Trained_Models/Inputs_Stats/inputs_train_std.npy", np.std(measures[:SOURCETASK['Train']], axis=0))
+        print("Compute and store normalization statistics from inputs in training set...")
+        np.save("Trained_Models/Normalization_Stats/inputstats_train_mean.npy", np.mean(measures[:SOURCETASK['Train']], axis=0))
+        np.save("Trained_Models/Normalization_Stats/inputstats_train_std.npy", np.std(measures[:SOURCETASK['Train']], axis=0))
 
     if GENERATE_DATA_TARGETTASK:
         print(f"Generate data for {TARGETTASK['Type']} {TARGETTASK['Task']} training......")
         ue_locs, channels, factors = generate_MIMO_networks(TARGETTASK['Train']+TARGETTASK['Valid'])
         measures = compute_measured_uplink_signals(channels)
+        # normalize factors
+        factors = normalize_factors(factors)
         np.save("Data/uelocs_targettask.npy", ue_locs)
         np.save("Data/channels_targettask.npy", channels)
         np.save("Data/factors_targettask.npy", factors)

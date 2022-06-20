@@ -9,15 +9,15 @@ class Neural_Net(nn.Module):
     def __init__(self):
         super().__init__()
         # model architecture attribute
-        self.feature_length = 200
+        self.feature_length = 150
         # attributes to be overridden by subclasses
         self.model_type = None
         self.model_path = None
         self.model_path_noEarlyStop = None
         # general attributes
         self.base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Trained_Models")
-        self.inputs_train_mean = torch.tensor(np.load(os.path.join(self.base_dir, "Inputs_Stats", "inputs_train_mean.npy")),dtype=torch.cfloat).to(DEVICE)
-        self.inputs_train_std = torch.tensor(np.load(os.path.join(self.base_dir, "Inputs_Stats", "inputs_train_std.npy")),dtype=torch.cfloat).to(DEVICE)
+        self.inputs_train_mean = torch.tensor(np.load(os.path.join(self.base_dir, "Normalization_Stats", "inputstats_train_mean.npy")),dtype=torch.cfloat).to(DEVICE)
+        self.inputs_train_std = torch.tensor(np.load(os.path.join(self.base_dir, "Normalization_Stats", "inputstats_train_std.npy")),dtype=torch.cfloat).to(DEVICE)
 
     def _preprocess_inputs(self, inputs):
         assert inputs.ndim == 3
@@ -83,11 +83,15 @@ class Neural_Net(nn.Module):
     
     def _construct_localization_optimizer_module(self):
         new_module = nn.ModuleList()
-        new_module.append(nn.Linear(self.feature_length, 100))
+        new_module.append(nn.Linear(self.feature_length, 125))
         new_module.append(nn.ReLU())
-        new_module.append(nn.Linear(100, 100))
+        new_module.append(nn.Linear(125, 100))
         new_module.append(nn.ReLU())
-        new_module.append(nn.Linear(100, 2))
+        new_module.append(nn.Linear(100, 75))
+        new_module.append(nn.ReLU())
+        new_module.append(nn.Linear(75, 50))
+        new_module.append(nn.ReLU())
+        new_module.append(nn.Linear(50, 2))
         # regard each coordinate predicted as normalized by the side-length of the region
         new_module.append(nn.Sigmoid())
         return new_module
@@ -95,6 +99,8 @@ class Neural_Net(nn.Module):
     def _construct_beamforming_optimizer_module(self):
         new_module = nn.ModuleList()
         new_module.append(nn.Linear(self.feature_length, 100))
+        new_module.append(nn.ReLU())
+        new_module.append(nn.Linear(100, 100))
         new_module.append(nn.ReLU())
         new_module.append(nn.Linear(100, 2*N_BS*N_BS_ANTENNAS))
         return new_module
