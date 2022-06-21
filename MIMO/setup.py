@@ -50,13 +50,13 @@ SOURCETASK = {'Type': 'Source-Task',
         'Valid': 5000,
         'Minibatch_Size': 5000,
         'Learning_Rate': 1e-3,
-        'Epochs': 150,
-        'Loss_Combine_Weight': 3}
+        'Epochs': 200,
+        'Loss_Combine_Weight': 4}
 TARGETTASK = {'Type': 'Target-Task',
         'Task': 'Localization',
         'Train': int(1e4),
         'Valid': 5000,
-        'Minibatch_Size': 100,
+        'Minibatch_Size': 200,
         'Learning_Rate': 2e-5,
         'Epochs': 750}
 N_TEST_SAMPLES = 2000
