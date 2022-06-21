@@ -7,7 +7,7 @@ from neural_nets import Regular_Net, Transfer_Net, Autoencoder_Transfer_Net
 from utils import *
 from setup import *
 
-EVALUATE_EARLY_STOP = False
+EVALUATE_EARLY_STOP = True
 PLOT_STYLES = {
     "Regular Learning": "m--",
     "Conventional Transfer": "g-.",
@@ -104,5 +104,25 @@ if(__name__ =='__main__'):
     plt.legend(prop={'size':20}, loc='lower right')
     plt.subplots_adjust(left=0.1, right=0.95, bottom=0.1, top=0.95)
     plt.show()   
+
+    # Plot the SNR CDF curve
+    # get the lower bound plot
+    lowerbound_plot, upperbound_plot = np.inf, -np.inf
+    for val in snrs_all.values():
+        lowerbound_plot = min(lowerbound_plot, np.percentile(val,q=5, interpolation="lower"))
+        upperbound_plot = max(upperbound_plot, np.percentile(val,q=95, interpolation="lower"))
+    fig = plt.figure()
+    plt.xlabel(f"[{task_type}] SNR values", fontsize=20)
+    plt.ylabel("Cumulative Distribution of SNR Values", fontsize=20)
+    plt.xticks(fontsize=21)
+    plt.yticks(np.linspace(start=0, stop=1, num=5), ["{}%".format(int(i*100)) for i in np.linspace(start=0, stop=1, num=5)], fontsize=21)
+    plt.grid(linestyle="dotted")
+    plt.ylim(bottom=0)
+    for method_key, snrs in snrs_all.items():
+        plt.plot(np.sort(snrs), np.arange(1,N_TEST_SAMPLES+1)/N_TEST_SAMPLES, PLOT_STYLES[method_key], linewidth=2.0, label=method_key)
+    plt.xlim(left=lowerbound_plot, right=upperbound_plot)
+    plt.legend(prop={'size':20}, loc='lower right')
+    plt.subplots_adjust(left=0.1, right=0.95, bottom=0.1, top=0.95)
+    plt.show()
 
     print("Beamforming Evaluation Finished Successfully!")

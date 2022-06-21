@@ -8,9 +8,7 @@ from neural_nets import Regular_Net, Transfer_Net, Autoencoder_Transfer_Net
 from utils import *
 from setup import *
 
-VISUALIZE_ALLOCATIONS = False
-GP_INCLUDED = True
-EVALUATE_EARLY_STOP = False
+EVALUATE_EARLY_STOP = True
 PLOT_STYLES = {
     "Regular Learning": "m--",
     "Conventional Transfer": "g-.",
