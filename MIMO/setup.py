@@ -51,7 +51,7 @@ SOURCETASK = {'Type': 'Source-Task',
         'Minibatch_Size': 5000,
         'Learning_Rate': 1e-3,
         'Epochs': 200,
-        'Loss_Combine_Weight': 4}
+        'Loss_Combine_Weight': 2}
 TARGETTASK = {'Type': 'Target-Task',
         'Task': 'Localization',
         'Train': int(1e4),

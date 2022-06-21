@@ -7,7 +7,7 @@ from neural_nets import Regular_Net, Transfer_Net, Autoencoder_Transfer_Net
 from utils import *
 from setup import *
 
-EVALUATE_EARLY_STOP = True
+EVALUATE_EARLY_STOP = False
 PLOT_STYLES = {
     "Regular Learning": "m--",
     "Conventional Transfer": "g-.",
