@@ -6,9 +6,9 @@ import utils
 from setup import *
 
 CHECK_SETTING = False
-GENERATE_DATA_SOURCETASK = False
+GENERATE_DATA_SOURCETASK = True
 GENERATE_DATA_TARGETTASK = True
-GENERATE_DATA_TEST = False
+GENERATE_DATA_TEST = True
 
 # To be called after pilots and sensing vectors are saved
 def compute_measured_uplink_signals(channels):
@@ -81,7 +81,7 @@ def get_channels_to_BS(ue_locs, BS_ID):
     steer_vec_tmp = np.matmul(steer_vec_tmp, indices)
     assert np.shape(steer_vec_tmp) == (n_networks, N_BS_ANTENNAS)
     channels_LOS = np.exp(1j*ANTENNA_SPACING_PHASE_SHIFT*steer_vec_tmp)  
-    channels_NLOS = np.random.normal(size=(n_networks, N_BS_ANTENNAS)) + 1j * np.random.normal(size=(n_networks, N_BS_ANTENNAS))
+    channels_NLOS = utils.generate_circular_gaussians(size_to_generate=(n_networks, N_BS_ANTENNAS), per_element_var=1/2)
     channels_fading = np.sqrt(RICIAN_FACTOR/(1+RICIAN_FACTOR))*channels_LOS + \
                         np.sqrt(1/(1+RICIAN_FACTOR))*channels_NLOS
     # compute path losses

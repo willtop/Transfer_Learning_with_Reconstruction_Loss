@@ -12,7 +12,7 @@ PLOT_STYLES = {
     "Regular Learning": "m--",
     "Conventional Transfer": "g-.",
     "Transfer with Reconstruct": "r-",
-    "Random Beamformers": "k:",
+    "Random Beamformers": "c:",
     "Perfect Beamformers": "y:"
 }
 

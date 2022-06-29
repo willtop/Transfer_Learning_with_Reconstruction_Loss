@@ -13,7 +13,7 @@ PLOT_STYLES = {
     "Regular Learning": "m--",
     "Conventional Transfer": "g-.",
     "Transfer with Reconstruct": "r-",
-    "Random Localization": "k:",
+    "Random Localization": "c:",
     "Center Localization": "y:"
 }
 
@@ -83,8 +83,8 @@ if(__name__ =='__main__'):
     # get the lower bound plot
     lowerbound_plot, upperbound_plot = np.inf, -np.inf
     for val in errors_all.values():
-        lowerbound_plot = min(lowerbound_plot, np.percentile(val, q=5, interpolation="lower"))
-        upperbound_plot = max(upperbound_plot, np.percentile(val, q=95, interpolation="lower"))
+        lowerbound_plot = min(lowerbound_plot, np.percentile(val, q=2, interpolation="lower"))
+        upperbound_plot = max(upperbound_plot, np.percentile(val, q=50, interpolation="lower"))
 
     fig = plt.figure()
     plt.xlabel(f"[{task_type}] Localization Errors (m)", fontsize=20)
@@ -103,7 +103,7 @@ if(__name__ =='__main__'):
     # Visualize localization results by each method
     rand_idxes = np.random.randint(N_TEST_SAMPLES, size=3)    
     for id in rand_idxes:
-        fig = plt.figure()
+        fig = plt.figure(constrained_layout=True)
         # plot network
         ueloc = uelocs[id]
         ax = fig.add_subplot(1,1,1,projection="3d")
@@ -111,7 +111,8 @@ if(__name__ =='__main__'):
         for method_key, uelocs_predicted in uelocs_predicted_all.items():
             ueloc_predicted = uelocs_predicted[id]
             plot_location_in_network(ax, ueloc_predicted, PLOT_STYLES[method_key][0], method_key)
-        ax.legend(prop={'size':15}, loc='upper right')
+        ax.legend(prop={'size':10}, loc='upper right')
+        ax.autoscale_view('tight')
         plt.show()
 
     print("Localization Evaluation Finished Successfully!")
