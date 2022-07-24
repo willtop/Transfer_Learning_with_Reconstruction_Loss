@@ -87,7 +87,7 @@ if(__name__ =='__main__'):
     lowerbound_plot, upperbound_plot = np.inf, -np.inf
     for val in errors_all.values():
         lowerbound_plot = min(lowerbound_plot, np.percentile(val, q=2, interpolation="lower"))
-        upperbound_plot = max(upperbound_plot, np.percentile(val, q=30, interpolation="lower"))
+        upperbound_plot = max(upperbound_plot, np.percentile(val, q=20, interpolation="lower"))
 
     fig = plt.figure()
     plt.xlabel(f"[{task_type}] Localization Errors (m)", fontsize=20)
@@ -104,7 +104,7 @@ if(__name__ =='__main__'):
     plt.show()   
 
     # Visualize localization results by each method
-    rand_idxes = np.random.randint(N_TEST_SAMPLES, size=3)    
+    rand_idxes = np.random.randint(N_TEST_SAMPLES, size=5)    
     for id in rand_idxes:
         fig = plt.figure(constrained_layout=True)
         # plot network
@@ -116,6 +116,7 @@ if(__name__ =='__main__'):
             plot_location_in_network(ax, ueloc_predicted, PLOT_STYLES[method_key][0], method_key)
         ax.legend(prop={'size':10}, loc='upper right')
         ax.autoscale_view('tight')
+        bound_3D_region(ax)
         plt.show()
 
     print("Localization Evaluation Finished Successfully!")

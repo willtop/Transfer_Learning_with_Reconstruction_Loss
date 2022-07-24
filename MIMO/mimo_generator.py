@@ -134,6 +134,7 @@ if __name__=="__main__":
             fig = plt.figure()
             ax = fig.add_subplot(2,1,1,projection="3d")
             utils.visualize_network(ax, ue_locs[i])
+            utils.bound_3D_region(ax)
             ax = fig.add_subplot(2,1,2)
             for j in range(N_BS):
                 ax.plot(np.arange(1, N_BS_ANTENNAS+1), np.power(np.abs(channels[i][j]),2), label=f'BS_{j+1}')
