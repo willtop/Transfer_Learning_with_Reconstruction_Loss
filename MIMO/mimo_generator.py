@@ -53,7 +53,7 @@ def establish_uplinks():
     return
 
 def compute_pathloss(dists):
-    pathlosses_tmp = 32.6+36.7*np.log(dists)
+    pathlosses_tmp = 32.6+36.7*np.log10(dists)
     pathlosses = np.power(10, -pathlosses_tmp/10)
     return pathlosses
 

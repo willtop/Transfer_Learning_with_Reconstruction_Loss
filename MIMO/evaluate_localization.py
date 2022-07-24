@@ -63,8 +63,11 @@ if(__name__ =='__main__'):
         uelocs_predicted_all['Regular Learning'] = postprocess_location_predictions(regular_net.targettask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE)).detach().cpu().numpy())
         uelocs_predicted_all['Conventional Transfer'] = postprocess_location_predictions(transfer_net.targettask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE)).detach().cpu().numpy())
         uelocs_predicted_all['Transfer with Reconstruct'] = postprocess_location_predictions(ae_transfer_net.targettask(torch.tensor(measures, dtype=torch.cfloat).to(DEVICE)).detach().cpu().numpy())
-    uelocs_predicted_all['Random Localization'] = np.concatenate([np.random.uniform(low=UE_LOCATION_XMIN, high=UE_LOCATION_XMAX, size=(N_TEST_SAMPLES, 1)), \
-                                                                  np.random.uniform(low=UE_LOCATION_YMIN, high=UE_LOCATION_YMAX, size=(N_TEST_SAMPLES, 1)), \
+    # Get random locations. Note here a new random seed is used locally, 
+    # to prevent it being the same with the test targets generated with fixed seed (when only generating test data)
+    randstate = np.random.RandomState(seed=321) # Make sure the seed here is different than the global seed
+    uelocs_predicted_all['Random Localization'] = np.concatenate([randstate.uniform(low=UE_LOCATION_XMIN, high=UE_LOCATION_XMAX, size=(N_TEST_SAMPLES, 1)), \
+                                                                  randstate.uniform(low=UE_LOCATION_YMIN, high=UE_LOCATION_YMAX, size=(N_TEST_SAMPLES, 1)), \
                                                                   np.zeros(shape=(N_TEST_SAMPLES,1),dtype=float)], axis=1)
     # For center localization, just guess the center of the possible UE distribution region
     uelocs_predicted_all['Center Localization'] = np.concatenate([np.ones(shape=(N_TEST_SAMPLES, 1),dtype=float)*(UE_LOCATION_XMIN+UE_LOCATION_XMAX)/2, \
@@ -84,7 +87,7 @@ if(__name__ =='__main__'):
     lowerbound_plot, upperbound_plot = np.inf, -np.inf
     for val in errors_all.values():
         lowerbound_plot = min(lowerbound_plot, np.percentile(val, q=2, interpolation="lower"))
-        upperbound_plot = max(upperbound_plot, np.percentile(val, q=50, interpolation="lower"))
+        upperbound_plot = max(upperbound_plot, np.percentile(val, q=30, interpolation="lower"))
 
     fig = plt.figure()
     plt.xlabel(f"[{task_type}] Localization Errors (m)", fontsize=20)

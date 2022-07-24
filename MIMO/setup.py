@@ -16,12 +16,12 @@ N_BS_ANTENNAS = 16
 ANTENNA_SPACING_PHASE_SHIFT = 1
 N_PILOTS = 4
 # Entire field region
-FIELD_LENGTH = 20
-FIELD_HEIGHT = 10
+FIELD_LENGTH = 100
+FIELD_HEIGHT = 50
 # UE region (assuming UE locates at the floor)
-UE_LOCATION_XMIN, UE_LOCATION_XMAX = 5, 15
-UE_LOCATION_YMIN, UE_LOCATION_YMAX = 5, 15 
-BS_LOCATIONS = np.array([[0,0,10], [0,20,10], [20,0,10]])
+UE_LOCATION_XMIN, UE_LOCATION_XMAX = 10, 90
+UE_LOCATION_YMIN, UE_LOCATION_YMAX = 10, 90 
+BS_LOCATIONS = np.array([[0,0,50], [0,100,50], [100,0,50]])
 assert np.shape(BS_LOCATIONS) == (N_BS, 3)
 BANDWIDTH = 5e6
 CARRIER_FREQUENCY = 50e9 
@@ -46,19 +46,19 @@ Training Setting
 """
 SOURCETASK = {'Type': 'Source-Task',
         'Task': 'Beamforming',
-        'Train': int(5e5),
+        'Train': int(1e5),
         'Valid': 5000,
         'Minibatch_Size': 5000,
-        'Learning_Rate': 1e-3,
-        'Epochs': 200,
-        'Loss_Combine_Weight': 2}
+        'Learning_Rate': 5e-4,
+        'Epochs': 150,
+        'Loss_Combine_Weight': 4}
 TARGETTASK = {'Type': 'Target-Task',
         'Task': 'Localization',
-        'Train': int(1e4),
+        'Train': int(500),
         'Valid': 5000,
-        'Minibatch_Size': 200,
-        'Learning_Rate': 2e-5,
-        'Epochs': 750}
+        'Minibatch_Size': 100,
+        'Learning_Rate': 5e-5,
+        'Epochs': 1000}
 N_TEST_SAMPLES = 2000
 assert SOURCETASK['Task'] in ['Localization', 'Beamforming'] and \
        TARGETTASK['Task'] in ['Localization', 'Beamforming']

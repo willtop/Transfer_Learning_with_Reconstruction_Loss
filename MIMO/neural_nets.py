@@ -71,13 +71,13 @@ class Neural_Net(nn.Module):
     # Modules to compose different types of neural net
     def _construct_feature_module(self):
         new_module = nn.ModuleList()
-        new_module.append(nn.Linear(N_BS*N_PILOTS*2, 200))
+        new_module.append(nn.Linear(N_BS*N_PILOTS*2, 150))
         new_module.append(nn.ReLU())
-        new_module.append(nn.Linear(200, 200))
+        new_module.append(nn.Linear(150, 150))
         new_module.append(nn.ReLU())
-        new_module.append(nn.Linear(200, 200))
+        new_module.append(nn.Linear(150, 150))
         new_module.append(nn.ReLU())
-        new_module.append(nn.Linear(200, self.feature_length))
+        new_module.append(nn.Linear(150, self.feature_length))
         new_module.append(nn.ReLU())
         return new_module
     
@@ -211,12 +211,12 @@ class Autoencoder_Transfer_Net(Neural_Net):
 
     def _construct_decoder_module(self):
         decoder_module = nn.ModuleList()
-        decoder_module.append(nn.Linear(self.feature_length, 100))
+        decoder_module.append(nn.Linear(self.feature_length, 50))
         decoder_module.append(nn.ReLU())
-        decoder_module.append(nn.Linear(100, 100))
+        decoder_module.append(nn.Linear(50, 50))
         decoder_module.append(nn.ReLU())
         # factors to be reconstructed aggregated over all BSs
-        decoder_module.append(nn.Linear(100, N_BS*N_FACTORS))
+        decoder_module.append(nn.Linear(50, N_BS*N_FACTORS))
         return decoder_module
 
     def sourcetask(self, x):

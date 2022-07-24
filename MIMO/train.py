@@ -64,6 +64,8 @@ def plot_training_curves():
     axes[1][1].plot(valid_losses[:,0], 'g', linewidth=line_width, label="Regular Learning")
     axes[1][1].plot(valid_losses[:,1], 'b', linewidth=line_width, label="Conventional Transfer")
     axes[1][1].plot(valid_losses[:,2], 'r', linewidth=line_width, label="Transfer with Reconstruct")
+    # [optional] zoom in on the tailing behavior of validation curves on target task
+    axes[1][1].set_ylim(bottom=0,top=50)
     for ax in axes.flatten():
         ax.legend(prop={'size':legend_fontsize}, loc='upper right')
         ax.tick_params(axis='both', labelsize=tick_fontsize)
